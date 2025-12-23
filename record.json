@@ -912,7 +912,8 @@
       ],
       "lane": "now",
       "priority_suggested": "P1",
-      "status": "todo",
+      "status": "completed",
+      "status_note": "字幕注入模块实现完成！支持 Data URI、Blob URL、TextTrack API 三种注入方式，包含轨道激活/停用、内容更新、自动清理等功能。54 个单元测试全部通过。Code Review 5 个问题已全部修复（2 P1 + 3 P2）。",
       "dependencies": [
         "T-20251223-act-001-spike-track-inject",
         "T-20251223-act-005-build-subtitle-fetch",
@@ -927,21 +928,99 @@
         "video-player-dom"
       ],
       "artifacts": [
-        "src/content/track-injector.ts"
+        "src/content/track-injector.ts",
+        "src/content/__tests__/track-injector.test.ts",
+        "Compact/Compact-T-20251223-act-008-build-track-injector-2025-12-23-T203227Z.md"
       ],
       "citations": [
         "EVID-006",
         "EVID-008"
       ],
       "created_at": "2025-12-23T12:00:00Z",
-      "updated_at": "2025-12-23T12:00:00Z",
-      "owner": "tbd",
+      "updated_at": "2025-12-24T04:45:00Z",
+      "completed_at": "2025-12-23T20:32:27Z",
+      "owner": "claude-code",
       "tags": [
         "seed:ACT-008",
         "build",
         "core",
         "FR-03"
-      ]
+      ],
+      "code_review": {
+        "status": "passed",
+        "reviewed_at": "2025-12-24T04:45:00Z",
+        "findings_resolved": 5,
+        "fixes": [
+          "[P1] injectTrackCues: 重构实现方式，改用 HTMLTrackElement + 空 VTT data URI 代替直接使用 video.addTextTrack()，确保 API 一致性 - 现在正确调用 registerTrack()、setupCleanup()、dispatch TRACK_INJECTED_EVENT，并在结果中返回 track 元素",
+          "[P1] injectTrackBlob: 添加已存在轨道检测，调用 removeTrack() 移除同 label 的旧轨道后再注入新轨道，确保 Blob URL 正确回收，与 injectTrack/injectTrackCues 行为一致",
+          "[P2] updateTrackContent: InjectedTrackInfo 接口新增 kind 属性，三个注入方法 (injectTrack/injectTrackBlob/injectTrackCues) 注册时保存 kind，updateTrackContent 现在正确传递 kind: trackInfo.kind 参数，避免重译时将 captions 降级为 subtitles",
+          "[P2] updateTrackContent: InjectedTrackInfo 接口新增 exclusive 属性，三个注入方法注册时保存 exclusive 值。新增 TrackUpdateOptions 接口，updateTrackContent 现在使用 options.exclusive ?? trackInfo.exclusive 保持原始独占设置，避免更新非独占轨道时意外禁用其他轨道",
+          "[P2] activateTrack/injectTrackCues: 独占模式下禁用其他轨道时同步清除其 InjectedTrackInfo.isActive 标志，确保 getActiveInjectedTrack() 返回正确的活跃轨道状态"
+        ]
+      },
+      "completion_summary": {
+        "deliverables": [
+          "src/content/track-injector.ts - 主模块 (900+ 行)",
+          "src/content/__tests__/track-injector.test.ts - 单元测试 (54 个测试用例)"
+        ],
+        "key_features": {
+          "injection_methods": [
+            "injectTrack() - Data URI 方式注入 (推荐，无 CSP 问题)",
+            "injectTrackBlob() - Blob URL 方式注入 (备选)",
+            "injectTrackCues() - TextTrack API 方式注入 (纯内存操作)"
+          ],
+          "track_management": [
+            "activateTrack() - 激活轨道，支持独占模式",
+            "deactivateTrack() - 停用轨道",
+            "setTrackMode() - 设置轨道模式 (disabled/hidden/showing)",
+            "removeTrack() - 移除单个轨道",
+            "removeAllTracks() - 移除所有注入的轨道",
+            "updateTrackContent() - 更新轨道内容"
+          ],
+          "query_functions": [
+            "getInjectedTracks() - 获取所有注入的轨道",
+            "hasInjectedTracks() - 检查是否有注入的轨道",
+            "getActiveInjectedTrack() - 获取当前激活的轨道",
+            "findTrackByLabel() - 按标签查找轨道"
+          ],
+          "auto_cleanup": [
+            "MutationObserver 监控视频元素移除",
+            "Blob URL 自动回收",
+            "WeakMap 管理轨道状态避免内存泄漏"
+          ],
+          "events": [
+            "udemycaptionplus:trackinjected - 轨道注入事件",
+            "udemycaptionplus:trackactivated - 轨道激活事件"
+          ]
+        },
+        "api_exports": [
+          "函数式 API: injectTrack, activateTrack, removeTrack 等",
+          "类式 API: TrackInjector 类",
+          "常量: DEFAULT_LABEL ('中文（优化）'), DEFAULT_LANGUAGE ('zh-CN'), INJECTED_TRACK_ATTR"
+        ],
+        "test_coverage": {
+          "total_tests": 54,
+          "categories": [
+            "常量验证 (4 tests)",
+            "injectTrack 功能 (8 tests)",
+            "injectTrackBlob 功能 (3 tests)",
+            "injectTrackCues 功能 (5 tests)",
+            "轨道激活/停用 (5 tests)",
+            "轨道移除 (3 tests)",
+            "轨道更新 (2 tests)",
+            "查询函数 (6 tests)",
+            "TrackInjector 类 (12 tests)",
+            "边界情况 (4 tests)",
+            "集成测试 (2 tests)"
+          ]
+        },
+        "next_steps": [
+          "与 Content Script 入口点集成",
+          "与 LLM 翻译模块配合使用翻译后的 VTT",
+          "与消息系统集成接收翻译完成事件",
+          "验证 Video.js CC 菜单是否自动更新（可能需要手动触发）"
+        ]
+      }
     },
     "T-20251223-act-012-build-retranslate": {
       "execution_order": 11,
