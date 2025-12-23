@@ -1,0 +1,1054 @@
+{
+  "test_config": {
+    "primary_test_course": {
+      "name": "2D RPG with Alex Dev",
+      "course_url": "https://www.udemy.com/course/2d-rpg-alexdev/",
+      "slug": "2d-rpg-alexdev",
+      "test_lecture": {
+        "url": "https://www.udemy.com/course/2d-rpg-alexdev/learn/lecture/36963178#content",
+        "lecture_id": "36963178",
+        "note": "用于 Spike 验证的具体课时页面"
+      },
+      "note": "首选测试课程，用于验证字幕抓取、翻译和注入功能"
+    }
+  },
+  "project_context": {
+    "brief": "Chrome 扩展，为 Udemy 视频提供 LLM 驱动的高质量中文字幕替换，解决机翻断句割裂问题，通过本地缓存和预加载实现流畅体验。",
+    "mvp_goal": "用户配置 API Key 后，自动抓取 Udemy 课程字幕并调用 LLM 翻译，以原生 <track> 元素注入播放器，支持本地缓存避免重复翻译。",
+    "non_goals": [
+      "不涉及视频内容修改或下载",
+      "不自建翻译模型服务（依赖第三方 API）",
+      "暂不支持无任何原文字幕的视频（不实现 ASR）",
+      "不提供云端字幕同步或共享功能",
+      "术语库上传功能属未来规划，MVP 不含"
+    ]
+  },
+  "md_source": "read_only.md",
+  "generated_at": "2025-12-23T12:00:00Z",
+  "tasks": {
+    "_execution_order_note": "任务按拓扑排序排列：先无依赖任务，再按依赖层级递进。同层任务可并行执行。",
+    "T-20251223-act-001-spike-track-inject": {
+      "execution_order": 1,
+      "execution_layer": 1,
+      "parallel_with": [
+        "ACT-002",
+        "ACT-003"
+      ],
+      "seed_id": "ACT-001",
+      "title": "Spike: 验证 Udemy 播放器 <track> 动态注入可行性",
+      "type": "research",
+      "summary": "确认技术路径 A 可行，解锁后续字幕注入开发；验证 CSP 绕过方案（data URI / chrome.runtime.getURL）在当前 Udemy + Chrome 环境有效。此为最高优先级阻断性验证。",
+      "acceptance_draft": [
+        "在 Udemy 课程页控制台执行注入脚本",
+        "播放器字幕菜单出现新添加的轨道选项",
+        "选中新轨道后字幕能正常随视频时间轴显示",
+        "全屏模式下字幕样式与原生一致",
+        "记录有效的 CSP 绕过方式（data URI 或 runtime.getURL）"
+      ],
+      "lane": "now",
+      "priority_suggested": "P0",
+      "status": "todo",
+      "dependencies": [],
+      "blocked": true,
+      "blocked_by": [
+        {
+          "dep_id": "DEP-003",
+          "name": "Udemy Web 前端 (Video.js)",
+          "type": "access",
+          "status": "unknown",
+          "doc_url": "",
+          "note": "需验证当前 Udemy 页面是否允许动态添加 <track> 元素"
+        }
+      ],
+      "unblock_plan": "实际在 Udemy 课程页执行注入代码验证，记录 DOM 结构和可行方案",
+      "estimate_h": 4,
+      "interfaces_touched": [
+        "content-script",
+        "video-player-dom"
+      ],
+      "artifacts": [
+        "spike-report-track-inject.md"
+      ],
+      "citations": [
+        "EVID-006",
+        "EVID-008"
+      ],
+      "created_at": "2025-12-23T12:00:00Z",
+      "updated_at": "2025-12-23T12:00:00Z",
+      "owner": "tbd",
+      "tags": [
+        "seed:ACT-001",
+        "spike",
+        "blocking",
+        "mvp-critical"
+      ]
+    },
+    "T-20251223-act-002-spike-next-lecture": {
+      "execution_order": 2,
+      "execution_layer": 1,
+      "parallel_with": [
+        "ACT-001",
+        "ACT-003"
+      ],
+      "seed_id": "ACT-002",
+      "title": "Spike: 分析 Udemy 页面课程列表结构，确定下一课 ID 获取方式",
+      "type": "research",
+      "summary": "预加载功能依赖准确获取下一课标识，需逆向分析 Udemy 页面 DOM 或数据结构以确定获取方式。",
+      "acceptance_draft": [
+        "文档记录获取下一课 ID 的方式（DOM 选择器或页面内嵌数据）",
+        "提供示例代码片段可稳定提取下一课 ID",
+        "记录边界情况处理（最后一课、跨章节等）"
+      ],
+      "lane": "now",
+      "priority_suggested": "P0",
+      "status": "todo",
+      "dependencies": [],
+      "blocked": true,
+      "blocked_by": [
+        {
+          "dep_id": "DEP-003",
+          "name": "Udemy Web 前端 (Video.js)",
+          "type": "access",
+          "status": "unknown",
+          "doc_url": "",
+          "note": "页面结构可能变化，需实际分析当前版本"
+        }
+      ],
+      "unblock_plan": "在 Udemy 课程页 DevTools 中分析 DOM 结构和 window 对象数据",
+      "estimate_h": 3,
+      "interfaces_touched": [
+        "content-script",
+        "udemy-page-structure"
+      ],
+      "artifacts": [
+        "spike-report-next-lecture.md"
+      ],
+      "citations": [
+        "EVID-008"
+      ],
+      "created_at": "2025-12-23T12:00:00Z",
+      "updated_at": "2025-12-23T12:00:00Z",
+      "owner": "tbd",
+      "tags": [
+        "seed:ACT-002",
+        "spike",
+        "preload"
+      ]
+    },
+    "T-20251223-act-003-spike-mv3-sw-lifecycle": {
+      "execution_order": 3,
+      "execution_layer": 1,
+      "parallel_with": [
+        "ACT-001",
+        "ACT-002"
+      ],
+      "seed_id": "ACT-003",
+      "title": "Spike: 验证 Manifest V3 Service Worker 生命周期对长时翻译任务影响",
+      "type": "research",
+      "summary": "LLM 翻译可能需要 30-60 秒，需确保 Service Worker 不被 Chrome 提前终止。此为架构设计的前置条件。",
+      "acceptance_draft": [
+        "文档记录 MV3 Service Worker 休眠机制和超时时间",
+        "验证 60 秒翻译任务是否可在 SW 中完成",
+        "记录可行的 SW 保活方案（chrome.alarms / 长连接 / offscreen document 等）",
+        "提供示例代码验证保活方案有效"
+      ],
+      "lane": "now",
+      "priority_suggested": "P0",
+      "status": "todo",
+      "dependencies": [],
+      "blocked": false,
+      "blocked_by": [],
+      "unblock_plan": "",
+      "estimate_h": 4,
+      "interfaces_touched": [
+        "service-worker",
+        "manifest-v3"
+      ],
+      "artifacts": [
+        "spike-report-sw-lifecycle.md"
+      ],
+      "citations": [
+        "EVID-011"
+      ],
+      "created_at": "2025-12-23T12:00:00Z",
+      "updated_at": "2025-12-23T12:00:00Z",
+      "owner": "tbd",
+      "tags": [
+        "seed:ACT-003",
+        "spike",
+        "architecture",
+        "mv3"
+      ]
+    },
+    "T-20251223-act-004-design-architecture": {
+      "execution_order": 4,
+      "execution_layer": 2,
+      "parallel_with": [],
+      "seed_id": "ACT-004",
+      "title": "设计扩展架构（Content Script / Service Worker / Popup 分工）",
+      "type": "design",
+      "summary": "Manifest V3 约束下明确各模块职责，避免 SW 生命周期问题。需在 Spike 结论基础上设计稳定可维护的架构。",
+      "acceptance_draft": [
+        "产出架构图（Content Script / SW / Popup / Storage 交互）",
+        "模块职责文档明确各组件边界",
+        "API 调用流程图（从字幕抓取到注入）",
+        "评审通过，团队理解一致"
+      ],
+      "lane": "now",
+      "priority_suggested": "P0",
+      "status": "todo",
+      "dependencies": [
+        "T-20251223-act-001-spike-track-inject",
+        "T-20251223-act-003-spike-mv3-sw-lifecycle"
+      ],
+      "blocked": false,
+      "blocked_by": [],
+      "unblock_plan": "",
+      "estimate_h": 4,
+      "interfaces_touched": [
+        "content-script",
+        "service-worker",
+        "popup",
+        "storage"
+      ],
+      "artifacts": [
+        "architecture.md",
+        "architecture-diagram.png"
+      ],
+      "citations": [
+        "EVID-011"
+      ],
+      "created_at": "2025-12-23T12:00:00Z",
+      "updated_at": "2025-12-23T12:00:00Z",
+      "owner": "tbd",
+      "tags": [
+        "seed:ACT-004",
+        "design",
+        "architecture",
+        "mvp-critical"
+      ]
+    },
+    "T-20251223-act-005-build-subtitle-fetch": {
+      "execution_order": 5,
+      "execution_layer": 3,
+      "parallel_with": [
+        "ACT-006",
+        "ACT-009",
+        "ACT-010"
+      ],
+      "seed_id": "ACT-005",
+      "title": "实现字幕抓取模块（Content Script）",
+      "type": "build",
+      "summary": "FR-01 核心功能，在 Content Script 中检测 Udemy 视频页面并获取原始字幕 URL，下载 WebVTT 内容。",
+      "acceptance_draft": [
+        "Content Script 在 Udemy 课程播放页加载后 3 秒内识别视频元素",
+        "成功提取原始字幕 URL（优先英文 WebVTT）",
+        "单元测试覆盖字幕 URL 提取逻辑",
+        "集成测试在真实 Udemy 页面抓取成功",
+        "控制台/日志可见字幕抓取状态"
+      ],
+      "lane": "now",
+      "priority_suggested": "P1",
+      "status": "todo",
+      "dependencies": [
+        "T-20251223-act-001-spike-track-inject",
+        "T-20251223-act-004-design-architecture"
+      ],
+      "blocked": false,
+      "blocked_by": [],
+      "unblock_plan": "",
+      "estimate_h": 6,
+      "interfaces_touched": [
+        "content-script",
+        "udemy-video-player"
+      ],
+      "artifacts": [
+        "src/content/subtitle-fetcher.ts"
+      ],
+      "citations": [
+        "EVID-008"
+      ],
+      "created_at": "2025-12-23T12:00:00Z",
+      "updated_at": "2025-12-23T12:00:00Z",
+      "owner": "tbd",
+      "tags": [
+        "seed:ACT-005",
+        "build",
+        "core",
+        "FR-01"
+      ]
+    },
+    "T-20251223-act-006-build-webvtt-parser": {
+      "execution_order": 6,
+      "execution_layer": 3,
+      "parallel_with": [
+        "ACT-005",
+        "ACT-009",
+        "ACT-010"
+      ],
+      "seed_id": "ACT-006",
+      "title": "实现 WebVTT 解析与生成模块",
+      "type": "build",
+      "summary": "翻译前后需解析/重组 WebVTT 格式，保持时间戳一致。这是 LLM 翻译与字幕注入之间的桥梁模块。",
+      "acceptance_draft": [
+        "解析器可正确解析标准 WebVTT 文件（含 cue ID、时间戳、文本）",
+        "生成器可将解析结果还原为有效 WebVTT 字符串",
+        "单元测试覆盖各种 VTT 格式（多行文本、样式标签等）",
+        "解析后再生成的文件与原文件语义等价",
+        "边界情况处理（空文件、格式错误等）"
+      ],
+      "lane": "now",
+      "priority_suggested": "P1",
+      "status": "todo",
+      "dependencies": [
+        "T-20251223-act-004-design-architecture"
+      ],
+      "blocked": false,
+      "blocked_by": [],
+      "unblock_plan": "",
+      "estimate_h": 4,
+      "interfaces_touched": [
+        "shared-utils"
+      ],
+      "artifacts": [
+        "src/utils/webvtt-parser.ts",
+        "src/utils/webvtt-generator.ts"
+      ],
+      "citations": [
+        "EVID-004",
+        "EVID-008"
+      ],
+      "created_at": "2025-12-23T12:00:00Z",
+      "updated_at": "2025-12-23T12:00:00Z",
+      "owner": "tbd",
+      "tags": [
+        "seed:ACT-006",
+        "build",
+        "core",
+        "parser"
+      ]
+    },
+    "T-20251223-act-009-build-popup-settings": {
+      "execution_order": 7,
+      "execution_layer": 3,
+      "parallel_with": [
+        "ACT-005",
+        "ACT-006",
+        "ACT-010"
+      ],
+      "seed_id": "ACT-009",
+      "title": "实现 Popup 设置面板（API Key / 模型选择 / 开关）",
+      "type": "build",
+      "summary": "FR-04, FR-05 用户配置入口，提供翻译服务选择、API Key 输入、模型选择和字幕替换主开关。",
+      "acceptance_draft": [
+        "UI 支持选择翻译服务（OpenAI / Gemini）",
+        "UI 支持输入 API Key（密码类型输入框）",
+        "UI 支持选择模型名称（下拉选择）",
+        "UI 包含\"保存并验证\"按钮",
+        "验证按钮调用 API 测试连通性，显示结果（可用/错误）",
+        "UI 包含\"字幕替换\"主开关",
+        "配置可保存/读取（chrome.storage.sync）",
+        "开关切换后 1 秒内生效，无需刷新页面"
+      ],
+      "lane": "now",
+      "priority_suggested": "P1",
+      "status": "todo",
+      "dependencies": [
+        "T-20251223-act-004-design-architecture"
+      ],
+      "blocked": false,
+      "blocked_by": [],
+      "unblock_plan": "",
+      "estimate_h": 6,
+      "interfaces_touched": [
+        "popup",
+        "storage"
+      ],
+      "artifacts": [
+        "src/popup/popup.html",
+        "src/popup/popup.ts",
+        "src/popup/popup.css"
+      ],
+      "citations": [
+        "EVID-001",
+        "EVID-005"
+      ],
+      "created_at": "2025-12-23T12:00:00Z",
+      "updated_at": "2025-12-23T12:00:00Z",
+      "owner": "tbd",
+      "tags": [
+        "seed:ACT-009",
+        "build",
+        "FR-04",
+        "FR-05",
+        "ui"
+      ]
+    },
+    "T-20251223-act-010-build-local-cache": {
+      "execution_order": 8,
+      "execution_layer": 3,
+      "parallel_with": [
+        "ACT-005",
+        "ACT-006",
+        "ACT-009"
+      ],
+      "seed_id": "ACT-010",
+      "title": "实现本地缓存模块（IndexedDB 存储已翻译字幕）",
+      "type": "build",
+      "summary": "FR-07 避免重复翻译，支持离线使用。缓存结构需包含课程/课时 ID、原字幕哈希、优化字幕文本、模型版本、时间戳。",
+      "acceptance_draft": [
+        "使用 IndexedDB 存储翻译结果",
+        "缓存键为课程/课时唯一标识",
+        "数据结构包含：课程/课时 ID、原字幕哈希、优化字幕文本、模型版本、时间戳",
+        "缓存命中时 0 API 调用即可返回字幕",
+        "浏览器重启后数据持久",
+        "提供缓存查询/写入/删除接口",
+        "缓存大小管理（可选 LRU 淘汰）"
+      ],
+      "lane": "now",
+      "priority_suggested": "P1",
+      "status": "todo",
+      "dependencies": [
+        "T-20251223-act-004-design-architecture"
+      ],
+      "blocked": false,
+      "blocked_by": [],
+      "unblock_plan": "",
+      "estimate_h": 4,
+      "interfaces_touched": [
+        "storage",
+        "indexeddb"
+      ],
+      "artifacts": [
+        "src/storage/subtitle-cache.ts"
+      ],
+      "citations": [
+        "EVID-007"
+      ],
+      "created_at": "2025-12-23T12:00:00Z",
+      "updated_at": "2025-12-23T12:00:00Z",
+      "owner": "tbd",
+      "tags": [
+        "seed:ACT-010",
+        "build",
+        "FR-07",
+        "cache",
+        "NFR-03"
+      ]
+    },
+    "T-20251223-act-007-build-llm-translator": {
+      "execution_order": 9,
+      "execution_layer": 4,
+      "parallel_with": [],
+      "seed_id": "ACT-007",
+      "title": "实现 LLM 翻译模块（支持 OpenAI / Gemini）",
+      "type": "build",
+      "summary": "FR-02 核心功能，调用用户配置的 LLM API 进行翻译。需支持 OpenAI GPT 系列和 Google Gemini，包含课程元数据作为上下文。",
+      "acceptance_draft": [
+        "支持 OpenAI Chat Completions API 调用",
+        "支持 Google Gemini API 调用",
+        "Prompt 包含课程名/章节名等元数据以提升术语翻译准确性",
+        "Prompt 明确要求保持时间戳格式，仅翻译文本部分",
+        "单元测试验证 Prompt 构造正确",
+        "Mock API 响应可解析为有效 VTT 结构",
+        "超时处理（60 秒上限）",
+        "错误重试机制"
+      ],
+      "lane": "now",
+      "priority_suggested": "P1",
+      "status": "todo",
+      "dependencies": [
+        "T-20251223-act-004-design-architecture",
+        "T-20251223-act-006-build-webvtt-parser"
+      ],
+      "blocked": false,
+      "blocked_by": [],
+      "unblock_plan": "",
+      "estimate_h": 8,
+      "interfaces_touched": [
+        "service-worker",
+        "openai-api",
+        "gemini-api"
+      ],
+      "artifacts": [
+        "src/services/translator.ts",
+        "src/services/openai-client.ts",
+        "src/services/gemini-client.ts"
+      ],
+      "citations": [
+        "EVID-004",
+        "EVID-005",
+        "EVID-009"
+      ],
+      "created_at": "2025-12-23T12:00:00Z",
+      "updated_at": "2025-12-23T12:00:00Z",
+      "owner": "tbd",
+      "tags": [
+        "seed:ACT-007",
+        "build",
+        "core",
+        "FR-02",
+        "llm"
+      ]
+    },
+    "T-20251223-act-008-build-track-injector": {
+      "execution_order": 10,
+      "execution_layer": 5,
+      "parallel_with": [
+        "ACT-012",
+        "ACT-016"
+      ],
+      "seed_id": "ACT-008",
+      "title": "实现字幕注入模块（动态创建 <track> 并激活）",
+      "type": "build",
+      "summary": "FR-03 核心功能，将翻译结果以原生 <track> 元素形式注入 Udemy 播放器，呈现给用户。",
+      "acceptance_draft": [
+        "动态创建 <track> 元素并添加到视频 DOM",
+        "使用 data URI 或 chrome.runtime.getURL 绕过 CSP",
+        "Udemy 播放器字幕菜单显示\"中文（优化）\"轨道选项",
+        "选中后字幕同步视频时间轴正常显示",
+        "全屏模式下字幕样式与原生一致",
+        "窗口大小变化时字幕自动适配"
+      ],
+      "lane": "now",
+      "priority_suggested": "P1",
+      "status": "todo",
+      "dependencies": [
+        "T-20251223-act-001-spike-track-inject",
+        "T-20251223-act-005-build-subtitle-fetch",
+        "T-20251223-act-007-build-llm-translator"
+      ],
+      "blocked": false,
+      "blocked_by": [],
+      "unblock_plan": "",
+      "estimate_h": 6,
+      "interfaces_touched": [
+        "content-script",
+        "video-player-dom"
+      ],
+      "artifacts": [
+        "src/content/track-injector.ts"
+      ],
+      "citations": [
+        "EVID-006",
+        "EVID-008"
+      ],
+      "created_at": "2025-12-23T12:00:00Z",
+      "updated_at": "2025-12-23T12:00:00Z",
+      "owner": "tbd",
+      "tags": [
+        "seed:ACT-008",
+        "build",
+        "core",
+        "FR-03"
+      ]
+    },
+    "T-20251223-act-012-build-retranslate": {
+      "execution_order": 11,
+      "execution_layer": 5,
+      "parallel_with": [
+        "ACT-008",
+        "ACT-016"
+      ],
+      "seed_id": "ACT-012",
+      "title": "实现字幕版本检测与重译功能",
+      "type": "build",
+      "summary": "FR-08 支持字幕更新与用户手动刷新，当原字幕版本变化或用户主动触发时重新翻译。",
+      "acceptance_draft": [
+        "检测原字幕哈希变化",
+        "原字幕更新时自动触发重译并更新缓存",
+        "Popup 设置面板提供\"重新翻译当前课\"按钮",
+        "点击按钮后发起新翻译请求并覆盖缓存",
+        "重译过程显示进度提示"
+      ],
+      "lane": "next",
+      "priority_suggested": "P2",
+      "status": "todo",
+      "dependencies": [
+        "T-20251223-act-007-build-llm-translator",
+        "T-20251223-act-010-build-local-cache"
+      ],
+      "blocked": false,
+      "blocked_by": [],
+      "unblock_plan": "",
+      "estimate_h": 3,
+      "interfaces_touched": [
+        "popup",
+        "service-worker",
+        "storage"
+      ],
+      "artifacts": [
+        "src/services/version-checker.ts"
+      ],
+      "citations": [
+        "EVID-001"
+      ],
+      "created_at": "2025-12-23T12:00:00Z",
+      "updated_at": "2025-12-23T12:00:00Z",
+      "owner": "tbd",
+      "tags": [
+        "seed:ACT-012",
+        "build",
+        "FR-08"
+      ]
+    },
+    "T-20251223-act-016-build-cost-estimate": {
+      "execution_order": 12,
+      "execution_layer": 5,
+      "parallel_with": [
+        "ACT-008",
+        "ACT-012"
+      ],
+      "seed_id": "ACT-016",
+      "title": "实现 API 费用/字数估算显示",
+      "type": "build",
+      "summary": "R-03 风险缓解，帮助用户在翻译前了解预估成本，翻译后显示实际消耗。",
+      "acceptance_draft": [
+        "翻译前根据字幕长度显示预估 Token 数",
+        "翻译前显示预估费用（基于当前模型定价）",
+        "翻译后显示实际消耗 Token 数和费用",
+        "累计显示本次会话总费用"
+      ],
+      "lane": "later",
+      "priority_suggested": "P2",
+      "status": "todo",
+      "dependencies": [
+        "T-20251223-act-007-build-llm-translator",
+        "T-20251223-act-009-build-popup-settings"
+      ],
+      "blocked": false,
+      "blocked_by": [],
+      "unblock_plan": "",
+      "estimate_h": 4,
+      "interfaces_touched": [
+        "popup",
+        "service-worker"
+      ],
+      "artifacts": [
+        "src/utils/cost-estimator.ts"
+      ],
+      "citations": [
+        "EVID-009",
+        "EVID-010"
+      ],
+      "created_at": "2025-12-23T12:00:00Z",
+      "updated_at": "2025-12-23T12:00:00Z",
+      "owner": "tbd",
+      "tags": [
+        "seed:ACT-016",
+        "build",
+        "R-03",
+        "ux"
+      ]
+    },
+    "T-20251223-act-011-build-preload": {
+      "execution_order": 13,
+      "execution_layer": 6,
+      "parallel_with": [
+        "ACT-013",
+        "ACT-014",
+        "ACT-015"
+      ],
+      "seed_id": "ACT-011",
+      "title": "实现预加载模块（后台翻译下一课字幕）",
+      "type": "build",
+      "summary": "FR-06 提升连续观看体验，当前课播放时后台静默翻译下一课字幕并缓存。",
+      "acceptance_draft": [
+        "当前课播放时自动识别下一课 ID",
+        "后台静默抓取下一课字幕并翻译",
+        "翻译结果存入本地缓存",
+        "当前课播放结束前下一课字幕已缓存（可在 DevTools Storage 验证）",
+        "用户跳转时直接命中缓存",
+        "用户快速跳转时可中断不必要的翻译请求"
+      ],
+      "lane": "next",
+      "priority_suggested": "P2",
+      "status": "todo",
+      "dependencies": [
+        "T-20251223-act-002-spike-next-lecture",
+        "T-20251223-act-007-build-llm-translator",
+        "T-20251223-act-010-build-local-cache"
+      ],
+      "blocked": false,
+      "blocked_by": [],
+      "unblock_plan": "",
+      "estimate_h": 6,
+      "interfaces_touched": [
+        "service-worker",
+        "content-script"
+      ],
+      "artifacts": [
+        "src/services/preloader.ts"
+      ],
+      "citations": [
+        "EVID-001"
+      ],
+      "created_at": "2025-12-23T12:00:00Z",
+      "updated_at": "2025-12-23T12:00:00Z",
+      "owner": "tbd",
+      "tags": [
+        "seed:ACT-011",
+        "build",
+        "FR-06",
+        "preload"
+      ]
+    },
+    "T-20251223-act-013-build-loading-indicator": {
+      "execution_order": 14,
+      "execution_layer": 6,
+      "parallel_with": [
+        "ACT-011",
+        "ACT-014",
+        "ACT-015"
+      ],
+      "seed_id": "ACT-013",
+      "title": "添加加载状态提示（翻译中...）",
+      "type": "build",
+      "summary": "NFR-02 用户体验优化，翻译期间显示加载提示避免用户困惑。",
+      "acceptance_draft": [
+        "翻译请求发起时视频区域显示\"字幕翻译中…\"提示",
+        "提示样式与 Udemy 播放器风格一致",
+        "翻译完成后提示自动消失",
+        "超时时显示错误提示并允许重试"
+      ],
+      "lane": "next",
+      "priority_suggested": "P2",
+      "status": "todo",
+      "dependencies": [
+        "T-20251223-act-008-build-track-injector"
+      ],
+      "blocked": false,
+      "blocked_by": [],
+      "unblock_plan": "",
+      "estimate_h": 2,
+      "interfaces_touched": [
+        "content-script",
+        "ui"
+      ],
+      "artifacts": [
+        "src/content/loading-indicator.ts"
+      ],
+      "citations": [
+        "EVID-001"
+      ],
+      "created_at": "2025-12-23T12:00:00Z",
+      "updated_at": "2025-12-23T12:00:00Z",
+      "owner": "tbd",
+      "tags": [
+        "seed:ACT-013",
+        "build",
+        "NFR-02",
+        "ux"
+      ]
+    },
+    "T-20251223-act-014-doc-privacy-policy": {
+      "execution_order": 15,
+      "execution_layer": 6,
+      "parallel_with": [
+        "ACT-011",
+        "ACT-013",
+        "ACT-015"
+      ],
+      "seed_id": "ACT-014",
+      "title": "编写隐私政策与扩展说明文档",
+      "type": "doc",
+      "summary": "Chrome Web Store 审核要求；用户知情同意。需说明数据仅存本地、直连官方 API。",
+      "acceptance_draft": [
+        "隐私政策说明数据仅存本地浏览器",
+        "隐私政策说明 API Key 仅用于直连官方服务",
+        "隐私政策说明不收集用户个人信息",
+        "README 包含安装指南",
+        "README 包含使用说明（配置 API Key、开启字幕等）",
+        "README 包含 FAQ"
+      ],
+      "lane": "next",
+      "priority_suggested": "P2",
+      "status": "todo",
+      "dependencies": [],
+      "blocked": false,
+      "blocked_by": [],
+      "unblock_plan": "",
+      "estimate_h": 3,
+      "interfaces_touched": [
+        "docs"
+      ],
+      "artifacts": [
+        "PRIVACY.md",
+        "README.md"
+      ],
+      "citations": [
+        "EVID-007",
+        "EVID-011"
+      ],
+      "created_at": "2025-12-23T12:00:00Z",
+      "updated_at": "2025-12-23T12:00:00Z",
+      "owner": "tbd",
+      "tags": [
+        "seed:ACT-014",
+        "doc",
+        "chrome-store"
+      ]
+    },
+    "T-20251223-act-015-build-e2e-monitor": {
+      "execution_order": 16,
+      "execution_layer": 6,
+      "parallel_with": [
+        "ACT-011",
+        "ACT-013",
+        "ACT-014"
+      ],
+      "seed_id": "ACT-015",
+      "title": "建立 E2E 测试（Playwright）监控 Udemy DOM 变化",
+      "type": "build",
+      "summary": "R-01 风险缓解，通过 E2E 测试及时发现 Udemy 网站变更导致的功能失效。",
+      "acceptance_draft": [
+        "Playwright 测试覆盖字幕抓取和注入核心流程",
+        "CI 定期运行测试（每日或每周）",
+        "DOM 结构变化时测试失败并告警",
+        "测试报告可追溯失败原因"
+      ],
+      "lane": "later",
+      "priority_suggested": "P2",
+      "status": "todo",
+      "dependencies": [
+        "T-20251223-act-008-build-track-injector"
+      ],
+      "blocked": false,
+      "blocked_by": [],
+      "unblock_plan": "",
+      "estimate_h": 6,
+      "interfaces_touched": [
+        "e2e-tests",
+        "ci"
+      ],
+      "artifacts": [
+        "tests/e2e/udemy-subtitle.spec.ts"
+      ],
+      "citations": [
+        "EVID-008"
+      ],
+      "created_at": "2025-12-23T12:00:00Z",
+      "updated_at": "2025-12-23T12:00:00Z",
+      "owner": "tbd",
+      "tags": [
+        "seed:ACT-015",
+        "build",
+        "test",
+        "R-01"
+      ]
+    }
+  },
+  "questions_for_human": [
+    {
+      "id": "Q-01",
+      "question": "Udemy 播放器是否允许动态添加 <track> 元素？需 Spike 验证后确认技术路径。",
+      "answer": "目前尚未验证",
+      "status": "pending_verification"
+    },
+    {
+      "id": "Q-03",
+      "question": "是否需要支持双语字幕同时显示模式？当前 MVP 规划中未包含，如需要请明确优先级。",
+      "answer": "否",
+      "status": "resolved"
+    },
+    {
+      "id": "Q-05",
+      "question": "是否需要支持用户自定义术语表？项目简介提及为未来规划，确认 MVP 不含。",
+      "answer": "否，只会给 LLM 提供课程名字",
+      "status": "resolved"
+    },
+    {
+      "id": "Q-06",
+      "question": "是否需要扩展到其他浏览器（Edge/Firefox）？当前仅规划 Chrome 扩展。",
+      "answer": "只规划 Chrome",
+      "status": "resolved"
+    },
+    {
+      "id": "Q-07",
+      "question": "项目简介中提到 GPT-5.1/Gemini 3Pro 等模型，但研究证据基于 GPT-4，需确认目标模型列表及对应 API 接口。",
+      "answer": "先以 GPT-5.1/Gemini 3Pro 等模型作为标准，需要去验证是否有变化",
+      "status": "pending_verification"
+    }
+  ],
+  "assumptions": [
+    "用户拥有有效的 OpenAI 或 Google Gemini API Key 并愿意承担翻译费用",
+    "Udemy 网站短期内不会大幅重构播放器导致扩展完全失效",
+    "用户主要观看有英文字幕的课程（无原文字幕暂不支持）",
+    "Chrome Manifest V3 的 Service Worker 生命周期限制可通过已知方案规避",
+    "data URI 或 chrome.runtime.getURL 方式可绕过 Udemy 页面 CSP"
+  ],
+  "risks": [
+    {
+      "id": "R-20251223-udemy-dom-change",
+      "summary": "Udemy 更新播放器导致字幕注入失效",
+      "severity": "high",
+      "mitigation": "抽象 DOM 选择器层便于快速修复；建立 E2E 测试监控；建立用户反馈通道",
+      "citations": [
+        "EVID-008"
+      ]
+    },
+    {
+      "id": "R-20251223-llm-latency",
+      "summary": "LLM 翻译延迟过长（>30s）影响体验",
+      "severity": "mid",
+      "mitigation": "预加载机制覆盖 90% 场景；提供手动取消/重试；可选快速模式（传统 MT）",
+      "citations": [
+        "EVID-009"
+      ]
+    },
+    {
+      "id": "R-20251223-api-cost",
+      "summary": "API 费用超出用户预期",
+      "severity": "mid",
+      "mitigation": "设置面板显示字数/费用估算；推荐 Gemini 免费额度；提供低成本模型降级选项",
+      "citations": [
+        "EVID-010",
+        "EVID-005"
+      ]
+    },
+    {
+      "id": "R-20251223-store-rejection",
+      "summary": "Chrome Web Store 审核拒绝（权限过多/隐私问题）",
+      "severity": "high",
+      "mitigation": "最小权限原则；提供清晰隐私政策；必要时仅发布 .crx 侧载版",
+      "citations": [
+        "EVID-011"
+      ]
+    },
+    {
+      "id": "R-20251223-llm-output-format",
+      "summary": "LLM 输出格式不可靠（时间戳错乱、内容审查拒绝）",
+      "severity": "mid",
+      "mitigation": "Prompt 明确要求保持时间标签不变；校验返回结果格式；格式错误时自动修正或重试",
+      "citations": [
+        "EVID-004"
+      ]
+    },
+    {
+      "id": "R-20251223-api-key-security",
+      "summary": "用户 API Key 安全风险",
+      "severity": "mid",
+      "mitigation": "Key 仅存 Chrome 扩展私有存储区；内容脚本不直接接触 Key；指导用户定期更换",
+      "citations": [
+        "EVID-007"
+      ]
+    }
+  ],
+  "external_dependencies": [
+    {
+      "dep_id": "DEP-001",
+      "name": "OpenAI GPT API",
+      "type": "api",
+      "status": "approved",
+      "doc_url": "https://platform.openai.com/docs/api-reference",
+      "note": "用户自备 API Key，扩展仅作调用中介",
+      "citations": [
+        "EVID-009",
+        "EVID-010"
+      ]
+    },
+    {
+      "dep_id": "DEP-002",
+      "name": "Google Gemini API",
+      "type": "api",
+      "status": "approved",
+      "doc_url": "https://ai.google.dev/docs",
+      "note": "用户自备 API Key，有免费额度可用",
+      "citations": [
+        "EVID-005"
+      ]
+    },
+    {
+      "dep_id": "DEP-003",
+      "name": "Udemy Web 前端 (Video.js)",
+      "type": "access",
+      "status": "unknown",
+      "doc_url": "",
+      "note": "Udemy 可能随时更新播放器实现，导致选择器失效或 track 注入被阻止；需 Spike 验证",
+      "citations": [
+        "EVID-008"
+      ]
+    },
+    {
+      "dep_id": "DEP-004",
+      "name": "Chrome Web Store 审核",
+      "type": "policy",
+      "status": "unknown",
+      "doc_url": "https://developer.chrome.com/docs/webstore/program-policies",
+      "note": "权限声明或隐私政策可能不符合要求；备选 .crx 侧载分发",
+      "citations": [
+        "EVID-011"
+      ]
+    },
+    {
+      "dep_id": "DEP-005",
+      "name": "Chrome Manifest V3 API",
+      "type": "lib",
+      "status": "approved",
+      "doc_url": "https://developer.chrome.com/docs/extensions/mv3/",
+      "note": "参照官方文档开发，注意 Service Worker 生命周期限制",
+      "citations": [
+        "EVID-011"
+      ]
+    },
+    {
+      "dep_id": "DEP-006",
+      "name": "CSP 绕过方案（data URI / chrome.runtime.getURL）",
+      "type": "lib",
+      "status": "approved",
+      "doc_url": "",
+      "note": "已有成熟方案，需在 Spike 中实际验证当前环境有效性",
+      "citations": [
+        "EVID-006"
+      ]
+    }
+  ],
+  "facts": [
+    "Udemy 使用 Video.js 播放器，字幕格式为 WebVTT [EVID-008]",
+    "LLM 翻译（GPT-4）成本约 $18/百万字符，速度较传统 MT 慢 15-20 倍 [EVID-009]",
+    "Google Gemini 提供免费 API 额度可降低用户入门门槛 [EVID-005]",
+    "Chrome Manifest V3 要求使用 Service Worker 替代持久后台页，存在生命周期限制 [EVID-011]",
+    "原生 <track> 元素注入可复用播放器样式控制逻辑，确保字幕外观一致 [EVID-006][EVID-008]"
+  ],
+  "decisions": [
+    {
+      "id": "D-20251223-track-inject",
+      "summary": "字幕注入方式选择原生 <track> 元素而非 DOM Overlay",
+      "rationale": "确保样式继承与全屏兼容，复用 Udemy Video.js 播放器的字号、位置、背景控制逻辑",
+      "citations": [
+        "EVID-008",
+        "EVID-006"
+      ],
+      "date": "2025-12-23T12:00:00Z"
+    },
+    {
+      "id": "D-20251223-multi-engine",
+      "summary": "翻译模型由用户自选（OpenAI GPT / Google Gemini），扩展不绑定单一供应商",
+      "rationale": "给用户灵活性以比较翻译效果和控制成本；Gemini 免费额度降低入门门槛",
+      "citations": [
+        "EVID-001",
+        "EVID-005"
+      ],
+      "date": "2025-12-23T12:00:00Z"
+    },
+    {
+      "id": "D-20251223-local-only-cache",
+      "summary": "字幕缓存仅存本地（chrome.storage.local 或 IndexedDB），不上传云端",
+      "rationale": "降低合规与隐私风险；用户数据不离开本机",
+      "citations": [
+        "EVID-007"
+      ],
+      "date": "2025-12-23T12:00:00Z"
+    },
+    {
+      "id": "D-20251223-llm-translation",
+      "summary": "采用 LLM 在线翻译方案（方案 A），放弃传统 MT 逐句翻译",
+      "rationale": "LLM 可利用整段上下文产出连贯译文，真正解决断句割裂问题，决策矩阵综合得分 A=4.2 > B=3.9",
+      "citations": [
+        "EVID-001",
+        "EVID-004"
+      ],
+      "date": "2025-12-23T12:00:00Z"
+    }
+  ]
+}
