@@ -191,7 +191,8 @@
       ],
       "lane": "now",
       "priority_suggested": "P0",
-      "status": "todo",
+      "status": "completed",
+      "status_note": "Spike 验证完成！MV3 SW 生命周期限制可通过流式 API + Chrome API 保活解决。推荐使用 Streaming API，配合 setInterval 调用 chrome.runtime.getPlatformInfo 保活。",
       "dependencies": [],
       "blocked": false,
       "blocked_by": [],
@@ -208,14 +209,29 @@
         "EVID-011"
       ],
       "created_at": "2025-12-23T12:00:00Z",
-      "updated_at": "2025-12-23T12:00:00Z",
-      "owner": "tbd",
+      "updated_at": "2025-12-23T18:30:00Z",
+      "completed_at": "2025-12-23T18:30:00Z",
+      "owner": "claude-code",
       "tags": [
         "seed:ACT-003",
         "spike",
         "architecture",
         "mv3"
-      ]
+      ],
+      "completion_summary": {
+        "deliverables": ["spike-report-sw-lifecycle.md"],
+        "key_findings": [
+          "30秒不活动超时：可通过 Chrome API 调用重置 (Chrome 110+)",
+          "5分钟单次请求超时：不影响60秒翻译任务",
+          "fetch() 30秒响应超时：使用流式 API 可避免",
+          "4种保活方案已验证：流式API、Chrome API保活、Offscreen Document、长连接消息端口",
+          "推荐最低 Chrome 版本：110+"
+        ],
+        "recommended_approach": "流式 API (Streaming) + Chrome API 保活 (setInterval + chrome.runtime.getPlatformInfo)",
+        "verification_date": "2025-12-23T18:30:00Z",
+        "minimum_chrome_version": "110",
+        "next_steps": ["集成到架构设计 (ACT-004)", "实现 LLM 翻译模块 (ACT-007) 时采用流式 API"]
+      }
     },
     "T-20251223-act-004-design-architecture": {
       "execution_order": 4,
@@ -912,7 +928,7 @@
     "用户拥有有效的 OpenAI 或 Google Gemini API Key 并愿意承担翻译费用",
     "Udemy 网站短期内不会大幅重构播放器导致扩展完全失效",
     "用户主要观看有英文字幕的课程（无原文字幕暂不支持）",
-    "Chrome Manifest V3 的 Service Worker 生命周期限制可通过已知方案规避",
+    "[已验证] Chrome Manifest V3 的 Service Worker 生命周期限制可通过流式 API + Chrome API 保活规避 - 2025-12-23 研究验证",
     "[已验证] data URI 或 Blob URL 方式可绕过 Udemy 页面 CSP - 2025-12-23 实测通过"
   ],
   "risks": [
