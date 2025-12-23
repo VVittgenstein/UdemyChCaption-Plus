@@ -257,12 +257,12 @@ describe('Settings Manager', () => {
       const settings: UserSettings = {
         ...DEFAULT_SETTINGS,
         provider: 'openai',
-        model: 'gpt-4o',
+        model: 'gpt-5.1',
       };
       const info = getModelInfo(settings);
 
       expect(info).not.toBeNull();
-      expect(info!.label).toBe('GPT-4o');
+      expect(info!.label).toBe('GPT-5.1');
       expect(typeof info!.costPer1kTokens).toBe('number');
     });
 
@@ -280,7 +280,7 @@ describe('Settings Manager', () => {
       const settings: UserSettings = {
         ...DEFAULT_SETTINGS,
         provider: 'unknown' as 'openai',
-        model: 'gpt-4o',
+        model: 'gpt-5.1',
       };
       const info = getModelInfo(settings);
       expect(info).toBeNull();
@@ -292,12 +292,12 @@ describe('Settings Manager', () => {
       const settings: UserSettings = {
         ...DEFAULT_SETTINGS,
         provider: 'openai',
-        model: 'gpt-4o',
+        model: 'gpt-5.1',
       };
 
-      // GPT-4o costs $0.005 per 1k tokens
+      // GPT-5.1 costs $0.008 per 1k tokens
       const cost = estimateCost(settings, 1000);
-      expect(cost).toBeCloseTo(0.005, 4);
+      expect(cost).toBeCloseTo(0.008, 4);
     });
 
     it('should return 0 for unknown model', () => {
@@ -310,14 +310,15 @@ describe('Settings Manager', () => {
       expect(cost).toBe(0);
     });
 
-    it('should handle free models', () => {
+    it('should handle low cost models', () => {
       const settings: UserSettings = {
         ...DEFAULT_SETTINGS,
         provider: 'gemini',
-        model: 'gemini-2.0-flash-exp',
+        model: 'gemini-2.5-flash',
       };
+      // Gemini 2.5 Flash costs $0.0005 per 1k tokens
       const cost = estimateCost(settings, 10000);
-      expect(cost).toBe(0);
+      expect(cost).toBeCloseTo(0.005, 4);
     });
   });
 

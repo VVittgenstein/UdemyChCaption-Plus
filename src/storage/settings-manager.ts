@@ -19,7 +19,7 @@ import type { UserSettings } from '../types';
 export const DEFAULT_SETTINGS: UserSettings = {
   provider: 'openai',
   apiKey: '',
-  model: 'gpt-4o',
+  model: 'gpt-5.1',
   enabled: true,
   autoTranslate: true,
   preloadEnabled: true,
@@ -32,17 +32,16 @@ export const DEFAULT_SETTINGS: UserSettings = {
  */
 export const PROVIDER_MODELS: Record<string, { value: string; label: string; costPer1kTokens: number }[]> = {
   openai: [
-    { value: 'gpt-4o', label: 'GPT-4o', costPer1kTokens: 0.005 },
-    { value: 'gpt-4o-mini', label: 'GPT-4o Mini', costPer1kTokens: 0.00015 },
-    { value: 'gpt-4-turbo', label: 'GPT-4 Turbo', costPer1kTokens: 0.01 },
-    { value: 'gpt-4', label: 'GPT-4', costPer1kTokens: 0.03 },
-    { value: 'gpt-3.5-turbo', label: 'GPT-3.5 Turbo', costPer1kTokens: 0.0005 },
+    { value: 'gpt-5.2', label: 'GPT-5.2', costPer1kTokens: 0.01 },
+    { value: 'gpt-5.1', label: 'GPT-5.1', costPer1kTokens: 0.008 },
+    { value: 'gpt-5-pro', label: 'GPT-5 Pro', costPer1kTokens: 0.015 },
+    { value: 'gpt-5', label: 'GPT-5', costPer1kTokens: 0.006 },
   ],
   gemini: [
-    { value: 'gemini-2.0-flash-exp', label: 'Gemini 2.0 Flash', costPer1kTokens: 0.0 },
-    { value: 'gemini-1.5-pro', label: 'Gemini 1.5 Pro', costPer1kTokens: 0.00125 },
-    { value: 'gemini-1.5-flash', label: 'Gemini 1.5 Flash', costPer1kTokens: 0.000075 },
-    { value: 'gemini-1.5-flash-8b', label: 'Gemini 1.5 Flash-8B', costPer1kTokens: 0.0000375 },
+    { value: 'gemini-3-pro-preview', label: 'Gemini 3 Pro Preview', costPer1kTokens: 0.005 },
+    { value: 'gemini-3-flash-preview', label: 'Gemini 3 Flash Preview', costPer1kTokens: 0.001 },
+    { value: 'gemini-2.5-pro', label: 'Gemini 2.5 Pro', costPer1kTokens: 0.003 },
+    { value: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash', costPer1kTokens: 0.0005 },
   ],
 };
 

@@ -785,7 +785,8 @@
       ],
       "lane": "now",
       "priority_suggested": "P1",
-      "status": "todo",
+      "status": "completed",
+      "status_note": "LLM 翻译模块实现完成并重构！采用新的直接 VTT 翻译方案（输入完整 VTT → LLM → 输出翻译后的 VTT），支持 GPT-5.x 和 Gemini 2.5/3.x 新模型，包含时长分批（10分钟/批次）、流式响应、Service Worker 保活机制、VTT 响应验证、超时处理和错误重试。接口已简化：移除 sourceLanguage/targetLanguage 参数，硬编码为英文→简体中文翻译。60 个单元测试全部通过（全项目 223 测试）。",
       "dependencies": [
         "T-20251223-act-004-design-architecture",
         "T-20251223-act-006-build-webvtt-parser"
@@ -802,7 +803,9 @@
       "artifacts": [
         "src/services/translator.ts",
         "src/services/openai-client.ts",
-        "src/services/gemini-client.ts"
+        "src/services/gemini-client.ts",
+        "src/services/__tests__/translator.test.ts",
+        "src/storage/settings-manager.ts"
       ],
       "citations": [
         "EVID-004",
@@ -810,15 +813,83 @@
         "EVID-009"
       ],
       "created_at": "2025-12-23T12:00:00Z",
-      "updated_at": "2025-12-23T12:00:00Z",
-      "owner": "tbd",
+      "updated_at": "2025-12-23T23:59:00Z",
+      "completed_at": "2025-12-23T23:59:00Z",
+      "owner": "claude-code",
       "tags": [
         "seed:ACT-007",
         "build",
         "core",
         "FR-02",
-        "llm"
-      ]
+        "llm",
+        "refactored"
+      ],
+      "completion_summary": {
+        "deliverables": [
+          "src/services/translator.ts - 主翻译模块 (850 行) [重构]",
+          "src/services/openai-client.ts - OpenAI API 客户端 (490 行)",
+          "src/services/gemini-client.ts - Gemini API 客户端 (560 行)",
+          "src/services/__tests__/translator.test.ts - 单元测试 (60 个测试用例)",
+          "src/storage/settings-manager.ts - 更新模型列表"
+        ],
+        "refactoring_summary": {
+          "old_approach": "提取文本 → 翻译 → 重组 VTT",
+          "new_approach": "直接输入完整 VTT → LLM → 输出翻译后的完整 VTT",
+          "rationale": "利用 GPT-5.1/Gemini-3.0-Pro 等高级模型能力，直接生成格式正确的翻译 VTT，简化流程并提高可靠性",
+          "interface_simplification": "移除 sourceLanguage/targetLanguage 参数，硬编码为 English → Chinese (简体中文)"
+        },
+        "key_features": {
+          "translator": [
+            "translateVTT(): 主入口，直接 VTT 翻译",
+            "splitVTTByDuration(): 按时长分批（默认 10 分钟/批）",
+            "parseTranslatedVTTResponse(): 解析 LLM 输出的 VTT",
+            "validateTranslatedVTT(): 验证时间戳和 cue 数量匹配",
+            "buildSystemPrompt(): 构建系统提示（固定英文→中文翻译，支持课程上下文）",
+            "buildUserPrompt(): 构建 VTT 翻译请求",
+            "estimateTranslationCost(): 翻译前费用估算",
+            "Translator class: 面向对象接口",
+            "重试机制: 可配置重试次数，指数退避"
+          ],
+          "openai_client": [
+            "chatCompletion(): Chat Completions API 调用",
+            "流式响应处理 (SSE)",
+            "Service Worker 保活机制 (25s interval)",
+            "validateApiKey(): API Key 验证",
+            "estimateTokens(): Token 估算"
+          ],
+          "gemini_client": [
+            "generateContent(): Gemini API 调用",
+            "流式响应处理",
+            "Service Worker 保活机制",
+            "validateApiKey(): API Key 验证",
+            "convertFromOpenAIFormat(): 消息格式转换"
+          ]
+        },
+        "supported_models": {
+          "openai": ["gpt-5.2", "gpt-5.1", "gpt-5-pro", "gpt-5"],
+          "gemini": ["gemini-3-pro-preview", "gemini-3-flash-preview", "gemini-2.5-pro", "gemini-2.5-flash"]
+        },
+        "test_coverage": {
+          "total_tests": 60,
+          "categories": [
+            "Prompt 构建 (8 tests)",
+            "时长分批 splitVTTByDuration (5 tests)",
+            "时长计算 getVTTDurationSpan (2 tests)",
+            "VTT 响应解析 parseTranslatedVTTResponse (6 tests)",
+            "VTT 验证 validateTranslatedVTT (3 tests)",
+            "Token/费用估算 (11 tests)",
+            "翻译流程 translateVTT (12 tests)",
+            "工具函数 (2 tests)",
+            "Translator 类 (8 tests)",
+            "settings-manager 更新 (3 tests)"
+          ]
+        },
+        "next_steps": [
+          "与字幕注入模块集成 (ACT-008)",
+          "与本地缓存模块集成 (ACT-010): 翻译后存储结果",
+          "与 Service Worker 消息系统集成"
+        ]
+      }
     },
     "T-20251223-act-008-build-track-injector": {
       "execution_order": 10,
