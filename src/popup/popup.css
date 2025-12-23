@@ -135,6 +135,47 @@ body {
   border: 1px solid #90caf9;
 }
 
+/* Cost Display */
+.cost-display {
+  padding: 10px 12px;
+  border-radius: 6px;
+  margin-bottom: 16px;
+  border: 1px solid #eee;
+  background: #fafafa;
+}
+
+.cost-display.hidden {
+  display: none;
+}
+
+.cost-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 2px 0;
+}
+
+.cost-label {
+  font-size: 12px;
+  color: #666;
+  flex-shrink: 0;
+}
+
+.cost-value {
+  font-size: 12px;
+  color: #333;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  word-break: break-word;
+}
+
+.cost-note {
+  font-size: 11px;
+  color: #888;
+  margin-top: 6px;
+}
+
 /* Form */
 .settings-form {
   display: flex;

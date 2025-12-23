@@ -1133,7 +1133,8 @@
       ],
       "lane": "later",
       "priority_suggested": "P2",
-      "status": "todo",
+      "status": "completed",
+      "status_note": "已实现费用/Token 估算与展示：Service Worker 在翻译前发送 COST_ESTIMATE（预估 tokens/费用），翻译完成后发送实际 tokens/费用并累计到会话总额；Popup 新增 CostDisplay 区域展示“预估/本次/会话累计”，并支持缓存命中时展示历史消耗。",
       "dependencies": [
         "T-20251223-act-007-build-llm-translator",
         "T-20251223-act-009-build-popup-settings"
@@ -1147,21 +1148,49 @@
         "service-worker"
       ],
       "artifacts": [
-        "src/utils/cost-estimator.ts"
+        "src/utils/cost-estimator.ts",
+        "src/storage/session-cost.ts",
+        "src/background/service-worker.ts",
+        "src/popup/popup.html",
+        "src/popup/popup.ts",
+        "src/popup/popup.css",
+        "src/types/index.ts",
+        "src/utils/__tests__/cost-estimator.test.ts"
       ],
       "citations": [
         "EVID-009",
         "EVID-010"
       ],
       "created_at": "2025-12-23T12:00:00Z",
-      "updated_at": "2025-12-23T12:00:00Z",
-      "owner": "tbd",
+      "updated_at": "2025-12-23T23:23:50Z",
+      "completed_at": "2025-12-23T23:20:42Z",
+      "owner": "codex-cli",
       "tags": [
         "seed:ACT-016",
         "build",
         "R-03",
         "ux"
-      ]
+      ],
+      "completion_summary": {
+        "deliverables": [
+          "src/utils/cost-estimator.ts - 模型定价表与费用计算工具",
+          "src/storage/session-cost.ts - 会话级 token/费用累计（chrome.storage.session）",
+          "src/background/service-worker.ts - 翻译前估算广播 + 翻译后实际消耗与会话累计",
+          "src/popup/popup.html / src/popup/popup.ts / src/popup/popup.css - CostDisplay UI 与消息监听",
+          "src/utils/__tests__/cost-estimator.test.ts - 单元测试"
+        ],
+        "key_features": [
+          "翻译前预估：基于字幕内容估算 tokens，并按模型定价计算预估费用",
+          "翻译后统计：展示实际 tokens 与费用，并累计到本次会话总费用",
+          "Popup 展示：预估 / 本次 / 会话累计（支持缓存命中显示历史消耗）",
+          "开关控制：showCostEstimate 关闭时隐藏费用区块"
+        ],
+        "verification": {
+          "tests": "npm test ✅ (8 suites / 285 tests)",
+          "type_check": "npm run type-check ✅",
+          "build": "npm run build ✅"
+        }
+      }
     },
     "T-20251223-act-011-build-preload": {
       "execution_order": 13,

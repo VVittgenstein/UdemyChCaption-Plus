@@ -9,8 +9,9 @@
 
 import { loadSettings, isEnabled } from '../storage/settings-manager';
 import { subtitleCache } from '../storage/subtitle-cache';
+import { addSessionCost, updateSessionCostState } from '../storage/session-cost';
 import { checkSubtitleVersion } from '../services/version-checker';
-import { translateVTT } from '../services/translator';
+import { estimateTranslationCost, translateVTT } from '../services/translator';
 import { calculateHash } from '../utils/hash';
 
 type AnyMessage = { type: string; payload?: any; meta?: any };
@@ -31,6 +32,11 @@ function sendProgress(tabId: number, taskId: string, progress: number): void {
   const payload = { taskId, progress };
   sendToTab(tabId, { type: 'TRANSLATION_PROGRESS', payload, meta: { target: 'content' } });
   sendToPopup({ type: 'TRANSLATION_PROGRESS', payload });
+}
+
+function sendCostEstimate(tabId: number, payload: any): void {
+  sendToTab(tabId, { type: 'COST_ESTIMATE', payload, meta: { target: 'content' } });
+  sendToPopup({ type: 'COST_ESTIMATE', payload });
 }
 
 function sendComplete(tabId: number, payload: any): void {
@@ -81,7 +87,17 @@ async function handleTranslateSubtitle(sender: chrome.runtime.MessageSender, pay
       meta: { target: 'content' },
     });
     // Popup UI: best-effort notification (no auto-hide here; Popup decides)
-    sendToPopup({ type: 'CACHE_HIT', payload: { taskId } });
+    sendToPopup({
+      type: 'CACHE_HIT',
+      payload: {
+        taskId,
+        provider: version.cachedEntry.provider,
+        model: version.cachedEntry.model,
+        tokensUsed: version.cachedEntry.tokensUsed,
+        costUsd: version.cachedEntry.estimatedCost,
+        fromCache: true,
+      },
+    });
     return;
   }
 
@@ -94,6 +110,34 @@ async function handleTranslateSubtitle(sender: chrome.runtime.MessageSender, pay
 
   const controller = new AbortController();
   activeControllers.set(taskId, controller);
+
+  if (settings.showCostEstimate) {
+    const estimate = estimateTranslationCost(vttContent, provider, model);
+    const estimatePayload = {
+      taskId,
+      provider,
+      model,
+      cueCount: estimate.cueCount,
+      estimatedPromptTokens: estimate.estimatedPromptTokens,
+      estimatedOutputTokens: estimate.estimatedOutputTokens,
+      estimatedTotalTokens: estimate.estimatedTotalTokens,
+      estimatedCostUsd: estimate.estimatedCost,
+      estimatedBatches: estimate.estimatedBatches,
+    };
+
+    sendCostEstimate(tabId, estimatePayload);
+    await updateSessionCostState({
+      lastEstimate: {
+        taskId,
+        provider,
+        model,
+        cueCount: estimate.cueCount,
+        estimatedTotalTokens: estimate.estimatedTotalTokens,
+        estimatedCostUsd: estimate.estimatedCost,
+        createdAt: Date.now(),
+      },
+    });
+  }
 
   sendProgress(tabId, taskId, 0);
 
@@ -112,7 +156,22 @@ async function handleTranslateSubtitle(sender: chrome.runtime.MessageSender, pay
 
   activeControllers.delete(taskId);
 
+  const actualTokens = typeof result.tokensUsed === 'number' ? result.tokensUsed : 0;
+  const actualCostUsd = typeof result.estimatedCost === 'number' ? result.estimatedCost : 0;
+
   if (result.success && result.translatedVTT) {
+    const sessionState = await addSessionCost(actualTokens, actualCostUsd);
+    await updateSessionCostState({
+      lastActual: {
+        taskId,
+        provider,
+        model,
+        tokensUsed: actualTokens,
+        costUsd: actualCostUsd,
+        createdAt: Date.now(),
+      },
+    });
+
     await subtitleCache.set({
       courseId,
       lectureId,
@@ -122,16 +181,47 @@ async function handleTranslateSubtitle(sender: chrome.runtime.MessageSender, pay
       translatedVTT: result.translatedVTT,
       provider,
       model,
-      tokensUsed: result.tokensUsed ?? 0,
-      estimatedCost: result.estimatedCost ?? 0,
+      tokensUsed: actualTokens,
+      estimatedCost: actualCostUsd,
     });
 
     sendComplete(tabId, {
       taskId,
       success: true,
       translatedVTT: result.translatedVTT,
-      tokensUsed: result.tokensUsed ?? 0,
-      estimatedCost: result.estimatedCost ?? 0,
+      provider,
+      model,
+      tokensUsed: actualTokens,
+      estimatedCost: actualCostUsd,
+      sessionTotalTokens: sessionState.totals.totalTokens,
+      sessionTotalCostUsd: sessionState.totals.totalCostUsd,
+    });
+    return;
+  }
+
+  if (actualTokens > 0 || actualCostUsd > 0) {
+    const sessionState = await addSessionCost(actualTokens, actualCostUsd);
+    await updateSessionCostState({
+      lastActual: {
+        taskId,
+        provider,
+        model,
+        tokensUsed: actualTokens,
+        costUsd: actualCostUsd,
+        createdAt: Date.now(),
+      },
+    });
+
+    sendComplete(tabId, {
+      taskId,
+      success: false,
+      error: result.error || 'Translation failed',
+      provider,
+      model,
+      tokensUsed: actualTokens,
+      estimatedCost: actualCostUsd,
+      sessionTotalTokens: sessionState.totals.totalTokens,
+      sessionTotalCostUsd: sessionState.totals.totalCostUsd,
     });
     return;
   }
@@ -140,8 +230,8 @@ async function handleTranslateSubtitle(sender: chrome.runtime.MessageSender, pay
     taskId,
     success: false,
     error: result.error || 'Translation failed',
-    tokensUsed: result.tokensUsed ?? 0,
-    estimatedCost: result.estimatedCost ?? 0,
+    tokensUsed: 0,
+    estimatedCost: 0,
   });
 }
 

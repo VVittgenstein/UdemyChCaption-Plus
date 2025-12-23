@@ -18,6 +18,7 @@
 import type { VTTFile, VTTCue, CourseInfo } from '../types';
 import { parseVTT, timestampToMs } from '../utils/webvtt-parser';
 import { generateVTT, mergeVTTFiles } from '../utils/webvtt-generator';
+import { calculateCost } from '../utils/cost-estimator';
 import { chatCompletion, estimateTokens as openaiEstimateTokens } from './openai-client';
 import { generateContent, convertFromOpenAIFormat, estimateTokens as geminiEstimateTokens } from './gemini-client';
 
@@ -115,21 +116,7 @@ const DEFAULT_MAX_RETRIES = 2;
 const DEFAULT_TEMPERATURE = 0.3;
 const DEFAULT_MAX_BATCH_DURATION_MS = 10 * 60 * 1000; // 10 minutes
 
-/**
- * Model pricing (per 1K tokens, input+output average)
- */
-const MODEL_PRICING: Record<string, number> = {
-  // OpenAI GPT-5 series
-  'gpt-5.2': 0.01,
-  'gpt-5.1': 0.008,
-  'gpt-5-pro': 0.015,
-  'gpt-5': 0.006,
-  // Gemini 3.x / 2.5 series
-  'gemini-3-pro-preview': 0.005,
-  'gemini-3-flash-preview': 0.001,
-  'gemini-2.5-pro': 0.003,
-  'gemini-2.5-flash': 0.0005,
-};
+export { calculateCost } from '../utils/cost-estimator';
 
 // ============================================
 // Logger
@@ -698,14 +685,6 @@ export function estimateTokens(provider: 'openai' | 'gemini', text: string): num
   } else {
     return geminiEstimateTokens(text);
   }
-}
-
-/**
- * Calculate cost based on model and token count
- */
-export function calculateCost(model: string, tokenCount: number): number {
-  const pricePerK = MODEL_PRICING[model] || 0.005; // Default to $0.005/1K if unknown
-  return (tokenCount / 1000) * pricePerK;
 }
 
 /**

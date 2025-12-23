@@ -132,10 +132,33 @@ export interface TranslateResult {
   translatedVTT?: string;
   /** Error message if failed */
   error?: string;
+  /** LLM provider used (if available) */
+  provider?: 'openai' | 'gemini';
+  /** Model name used (if available) */
+  model?: string;
   /** Tokens consumed */
   tokensUsed?: number;
-  /** Estimated cost in USD */
+  /** Estimated/actual cost in USD */
   estimatedCost?: number;
+  /** Session total tokens (best-effort, if available) */
+  sessionTotalTokens?: number;
+  /** Session total cost in USD (best-effort, if available) */
+  sessionTotalCostUsd?: number;
+}
+
+/**
+ * Translation cost estimate emitted before running the translation
+ */
+export interface CostEstimateResult {
+  taskId: string;
+  provider: 'openai' | 'gemini';
+  model: string;
+  cueCount: number;
+  estimatedPromptTokens: number;
+  estimatedOutputTokens: number;
+  estimatedTotalTokens: number;
+  estimatedCostUsd: number;
+  estimatedBatches: number;
 }
 
 /**
@@ -154,6 +177,7 @@ export type MessageToBackground =
 export type MessageToContent =
   | { type: 'TRANSLATION_COMPLETE'; payload: TranslateResult }
   | { type: 'TRANSLATION_PROGRESS'; payload: { taskId: string; progress: number } }
+  | { type: 'COST_ESTIMATE'; payload: CostEstimateResult }
   | { type: 'CACHE_HIT'; payload: { translatedVTT: string; taskId?: string } }
   | { type: 'CACHE_MISS' }
   | { type: 'SETTINGS'; payload: UserSettings };

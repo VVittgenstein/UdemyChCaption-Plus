@@ -15,6 +15,7 @@
  * - Timeout handling and retry mechanism
  */
 import type { VTTFile, CourseInfo } from '../types';
+import { calculateCost } from '../utils/cost-estimator';
 /**
  * Translation request options
  */
@@ -91,6 +92,7 @@ interface ValidationResult {
     valid: boolean;
     errors: string[];
 }
+export { calculateCost } from '../utils/cost-estimator';
 type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 /**
  * Set the logging level
@@ -145,10 +147,6 @@ export declare function translateVTT(vttContent: string, options: TranslationOpt
  * Estimate token count for text
  */
 export declare function estimateTokens(provider: 'openai' | 'gemini', text: string): number;
-/**
- * Calculate cost based on model and token count
- */
-export declare function calculateCost(model: string, tokenCount: number): number;
 /**
  * Estimate translation cost before running
  */

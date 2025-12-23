@@ -25,6 +25,23 @@
     <!-- Status Message -->
     <div id="status-message" class="status-message hidden"></div>
 
+    <!-- Cost Display -->
+    <div id="cost-display" class="cost-display hidden" aria-live="polite">
+      <div class="cost-row">
+        <span class="cost-label">预估</span>
+        <span id="cost-estimate" class="cost-value">-</span>
+      </div>
+      <div class="cost-row">
+        <span class="cost-label">本次</span>
+        <span id="cost-actual" class="cost-value">-</span>
+      </div>
+      <div class="cost-row">
+        <span class="cost-label">会话累计</span>
+        <span id="cost-session" class="cost-value">-</span>
+      </div>
+      <p class="cost-note">Token 为估算值，实际以接口返回为准</p>
+    </div>
+
     <!-- Settings Form -->
     <form id="settings-form" class="settings-form">
       <!-- Provider Selection -->

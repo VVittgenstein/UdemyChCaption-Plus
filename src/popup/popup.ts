@@ -21,17 +21,16 @@ import type { UserSettings } from '../types';
  */
 const PROVIDER_MODELS: Record<string, { value: string; label: string }[]> = {
   openai: [
-    { value: 'gpt-4o', label: 'GPT-4o (推荐)' },
-    { value: 'gpt-4o-mini', label: 'GPT-4o Mini (更快)' },
-    { value: 'gpt-4-turbo', label: 'GPT-4 Turbo' },
-    { value: 'gpt-4', label: 'GPT-4' },
-    { value: 'gpt-3.5-turbo', label: 'GPT-3.5 Turbo (经济)' },
+    { value: 'gpt-5.2', label: 'GPT-5.2' },
+    { value: 'gpt-5.1', label: 'GPT-5.1 (推荐)' },
+    { value: 'gpt-5-pro', label: 'GPT-5 Pro' },
+    { value: 'gpt-5', label: 'GPT-5' },
   ],
   gemini: [
-    { value: 'gemini-2.0-flash-exp', label: 'Gemini 2.0 Flash (推荐)' },
-    { value: 'gemini-1.5-pro', label: 'Gemini 1.5 Pro' },
-    { value: 'gemini-1.5-flash', label: 'Gemini 1.5 Flash (更快)' },
-    { value: 'gemini-1.5-flash-8b', label: 'Gemini 1.5 Flash-8B (经济)' },
+    { value: 'gemini-3-pro-preview', label: 'Gemini 3 Pro Preview' },
+    { value: 'gemini-3-flash-preview', label: 'Gemini 3 Flash Preview (推荐)' },
+    { value: 'gemini-2.5-pro', label: 'Gemini 2.5 Pro' },
+    { value: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash' },
   ],
 };
 
@@ -41,7 +40,7 @@ const PROVIDER_MODELS: Record<string, { value: string; label: string }[]> = {
 const DEFAULT_SETTINGS: UserSettings = {
   provider: 'openai',
   apiKey: '',
-  model: 'gpt-4o',
+  model: 'gpt-5.1',
   enabled: true,
   autoTranslate: true,
   preloadEnabled: true,
@@ -55,6 +54,45 @@ const DEFAULT_SETTINGS: UserSettings = {
 const API_ENDPOINTS = {
   openai: 'https://api.openai.com/v1/models',
   gemini: 'https://generativelanguage.googleapis.com/v1beta/models',
+};
+
+// ============================================
+// Session Cost (chrome.storage.session)
+// ============================================
+
+interface SessionCostState {
+  totals: {
+    totalTokens: number;
+    totalCostUsd: number;
+    updatedAt: number;
+  };
+  lastEstimate?: {
+    taskId: string;
+    provider: 'openai' | 'gemini';
+    model: string;
+    cueCount: number;
+    estimatedTotalTokens: number;
+    estimatedCostUsd: number;
+    createdAt: number;
+  };
+  lastActual?: {
+    taskId: string;
+    provider: 'openai' | 'gemini';
+    model: string;
+    tokensUsed: number;
+    costUsd: number;
+    createdAt: number;
+  };
+}
+
+const SESSION_COST_KEY = 'udemy-caption-plus:session-cost';
+
+const DEFAULT_SESSION_COST_STATE: SessionCostState = {
+  totals: {
+    totalTokens: 0,
+    totalCostUsd: 0,
+    updatedAt: 0,
+  },
 };
 
 // ============================================
@@ -76,6 +114,11 @@ interface DOMElements {
   // Status
   statusMessage: HTMLDivElement;
   validationResult: HTMLDivElement;
+  // Cost display
+  costDisplay: HTMLDivElement;
+  costEstimate: HTMLSpanElement;
+  costActual: HTMLSpanElement;
+  costSession: HTMLSpanElement;
   // Additional settings
   autoTranslate: HTMLInputElement;
   preloadEnabled: HTMLInputElement;
@@ -86,6 +129,7 @@ interface DOMElements {
 let elements: DOMElements;
 let statusAutoHideTimer: number | null = null;
 let currentRetranslateTaskId: string | null = null;
+let sessionCostState: SessionCostState = structuredClone(DEFAULT_SESSION_COST_STATE);
 
 // ============================================
 // Storage Functions
@@ -137,6 +181,34 @@ async function saveSettings(settings: Partial<UserSettings>): Promise<void> {
       resolve();
     }
   });
+}
+
+// ============================================
+// Session Cost Functions
+// ============================================
+
+function hasSessionStorage(): boolean {
+  return typeof chrome !== 'undefined' && !!chrome.storage?.session;
+}
+
+async function loadSessionCost(): Promise<SessionCostState> {
+  if (hasSessionStorage()) {
+    return new Promise((resolve) => {
+      chrome.storage.session.get({ [SESSION_COST_KEY]: DEFAULT_SESSION_COST_STATE }, (result) => {
+        const value = (result as Record<string, SessionCostState>)[SESSION_COST_KEY];
+        resolve(value ?? structuredClone(DEFAULT_SESSION_COST_STATE));
+      });
+    });
+  }
+
+  // Development/testing fallback
+  const stored = localStorage.getItem(SESSION_COST_KEY);
+  if (!stored) return structuredClone(DEFAULT_SESSION_COST_STATE);
+  try {
+    return { ...structuredClone(DEFAULT_SESSION_COST_STATE), ...JSON.parse(stored) } as SessionCostState;
+  } catch {
+    return structuredClone(DEFAULT_SESSION_COST_STATE);
+  }
 }
 
 /**
@@ -278,6 +350,10 @@ function getDOMElements(): DOMElements {
     retranslateBtn: document.getElementById('retranslate-btn') as HTMLButtonElement,
     statusMessage: document.getElementById('status-message') as HTMLDivElement,
     validationResult: document.getElementById('validation-result') as HTMLDivElement,
+    costDisplay: document.getElementById('cost-display') as HTMLDivElement,
+    costEstimate: document.getElementById('cost-estimate') as HTMLSpanElement,
+    costActual: document.getElementById('cost-actual') as HTMLSpanElement,
+    costSession: document.getElementById('cost-session') as HTMLSpanElement,
     autoTranslate: document.getElementById('autoTranslate') as HTMLInputElement,
     preloadEnabled: document.getElementById('preloadEnabled') as HTMLInputElement,
     showCostEstimate: document.getElementById('showCostEstimate') as HTMLInputElement,
@@ -315,6 +391,63 @@ function showStatus(message: string, type: 'success' | 'error' | 'info', autoHid
       statusAutoHideTimer = null;
     }, 3000);
   }
+}
+
+function setCostDisplayVisible(visible: boolean): void {
+  if (visible) {
+    elements.costDisplay.classList.remove('hidden');
+  } else {
+    elements.costDisplay.classList.add('hidden');
+  }
+}
+
+function formatTokenCount(tokenCount: number): string {
+  if (!Number.isFinite(tokenCount) || tokenCount <= 0) return '0';
+  if (tokenCount >= 1_000_000) return `${(tokenCount / 1_000_000).toFixed(2)}M`;
+  if (tokenCount >= 10_000) return `${(tokenCount / 1_000).toFixed(1)}K`;
+  return tokenCount.toLocaleString();
+}
+
+function formatUsd(costUsd: number): string {
+  if (!Number.isFinite(costUsd) || costUsd <= 0) return '$0';
+  const abs = Math.abs(costUsd);
+  if (abs >= 10) return `$${costUsd.toFixed(2)}`;
+  if (abs >= 1) return `$${costUsd.toFixed(3)}`;
+  if (abs >= 0.1) return `$${costUsd.toFixed(4)}`;
+  return `$${costUsd.toFixed(6)}`;
+}
+
+function formatTokensAndCost(tokenCount: number, costUsd: number, approx: boolean): string {
+  const tokens = `${formatTokenCount(tokenCount)} tokens`;
+  const cost = formatUsd(costUsd);
+  return `${approx ? '≈ ' : ''}${tokens} · ${approx ? '≈ ' : ''}${cost}`;
+}
+
+function renderCostDisplay(): void {
+  const estimate = sessionCostState.lastEstimate;
+  const actual = sessionCostState.lastActual;
+
+  if (estimate) {
+    elements.costEstimate.textContent = formatTokensAndCost(
+      estimate.estimatedTotalTokens,
+      estimate.estimatedCostUsd,
+      true
+    );
+  } else {
+    elements.costEstimate.textContent = '-';
+  }
+
+  if (actual) {
+    elements.costActual.textContent = formatTokensAndCost(actual.tokensUsed, actual.costUsd, false);
+  } else {
+    elements.costActual.textContent = '-';
+  }
+
+  elements.costSession.textContent = formatTokensAndCost(
+    sessionCostState.totals.totalTokens,
+    sessionCostState.totals.totalCostUsd,
+    false
+  );
 }
 
 /**
@@ -384,6 +517,7 @@ function populateForm(settings: UserSettings): void {
   elements.showCostEstimate.checked = settings.showCostEstimate;
   elements.showLoadingIndicator.checked = settings.showLoadingIndicator;
   updateFormState(settings.enabled);
+  setCostDisplayVisible(settings.showCostEstimate);
 }
 
 /**
@@ -468,6 +602,14 @@ async function handleAdditionalSettingChange(key: keyof UserSettings): Promise<v
     await saveSettings({ [key]: checkbox.checked });
     const settings = getFormValues();
     await notifySettingsChanged(settings);
+
+    if (key === 'showCostEstimate') {
+      setCostDisplayVisible(checkbox.checked);
+      if (checkbox.checked) {
+        sessionCostState = await loadSessionCost();
+        renderCostDisplay();
+      }
+    }
   } catch (error) {
     showStatus('保存失败', 'error');
   }
@@ -558,6 +700,69 @@ function setupRetranslateMessageListener(): void {
   chrome.runtime.onMessage.addListener((message: any) => {
     if (!message || typeof message !== 'object') return;
 
+    if (message.type === 'COST_ESTIMATE') {
+      const payload = message.payload;
+      if (!payload || typeof payload !== 'object') return;
+
+      const taskId = typeof payload.taskId === 'string' ? payload.taskId : '';
+      const provider = payload.provider === 'gemini' ? 'gemini' : 'openai';
+      const model = typeof payload.model === 'string' ? payload.model : '';
+      const cueCount = typeof payload.cueCount === 'number' ? payload.cueCount : 0;
+      const estimatedTotalTokens =
+        typeof payload.estimatedTotalTokens === 'number' ? payload.estimatedTotalTokens : 0;
+      const estimatedCostUsd =
+        typeof payload.estimatedCostUsd === 'number' ? payload.estimatedCostUsd : 0;
+
+      if (!taskId || !model) return;
+
+      sessionCostState = {
+        ...sessionCostState,
+        lastEstimate: {
+          taskId,
+          provider,
+          model,
+          cueCount,
+          estimatedTotalTokens,
+          estimatedCostUsd,
+          createdAt: Date.now(),
+        },
+      };
+
+      if (elements.showCostEstimate.checked) {
+        renderCostDisplay();
+      }
+      return;
+    }
+
+    if (message.type === 'CACHE_HIT') {
+      const payload = message.payload;
+      if (!payload || typeof payload !== 'object') return;
+
+      const taskId = typeof payload.taskId === 'string' ? payload.taskId : '';
+      const provider = payload.provider === 'gemini' ? 'gemini' : 'openai';
+      const model = typeof payload.model === 'string' ? payload.model : '';
+      const tokensUsed = typeof payload.tokensUsed === 'number' ? payload.tokensUsed : 0;
+      const costUsd = typeof payload.costUsd === 'number' ? payload.costUsd : 0;
+
+      if (taskId && model && (tokensUsed > 0 || costUsd > 0)) {
+        sessionCostState = {
+          ...sessionCostState,
+          lastActual: {
+            taskId,
+            provider,
+            model,
+            tokensUsed,
+            costUsd,
+            createdAt: Date.now(),
+          },
+        };
+        if (elements.showCostEstimate.checked) {
+          renderCostDisplay();
+        }
+      }
+      return;
+    }
+
     if (message.type === 'TRANSLATION_PROGRESS') {
       const taskId = message.payload?.taskId;
       const progress = message.payload?.progress;
@@ -572,6 +777,57 @@ function setupRetranslateMessageListener(): void {
     if (message.type === 'TRANSLATION_COMPLETE') {
       const payload = message.payload;
       const taskId = payload?.taskId;
+
+      // Update cost display (best-effort, not limited to popup-initiated tasks)
+      if (payload && typeof payload === 'object') {
+        const tokensUsed = typeof payload.tokensUsed === 'number' ? payload.tokensUsed : 0;
+        const costUsd = typeof payload.estimatedCost === 'number' ? payload.estimatedCost : 0;
+        const sessionTotalTokens =
+          typeof payload.sessionTotalTokens === 'number' ? payload.sessionTotalTokens : null;
+        const sessionTotalCostUsd =
+          typeof payload.sessionTotalCostUsd === 'number' ? payload.sessionTotalCostUsd : null;
+
+        if (typeof taskId === 'string') {
+          const estimateMatch = sessionCostState.lastEstimate?.taskId === taskId
+            ? sessionCostState.lastEstimate
+            : null;
+          const fallbackProvider = estimateMatch ? estimateMatch.provider : 'openai';
+          const fallbackModel = estimateMatch ? estimateMatch.model : elements.model.value;
+
+          const provider =
+            payload.provider === 'gemini' ? 'gemini' : payload.provider === 'openai' ? 'openai' : fallbackProvider;
+          const model = typeof payload.model === 'string' ? payload.model : fallbackModel;
+
+          if (model && (tokensUsed > 0 || costUsd > 0)) {
+            sessionCostState = {
+              ...sessionCostState,
+              lastActual: {
+                taskId,
+                provider,
+                model,
+                tokensUsed,
+                costUsd,
+                createdAt: Date.now(),
+              },
+            };
+          }
+        }
+
+        if (sessionTotalTokens !== null && sessionTotalCostUsd !== null) {
+          sessionCostState = {
+            ...sessionCostState,
+            totals: {
+              totalTokens: sessionTotalTokens,
+              totalCostUsd: sessionTotalCostUsd,
+              updatedAt: Date.now(),
+            },
+          };
+        }
+
+        if (elements.showCostEstimate.checked) {
+          renderCostDisplay();
+        }
+      }
 
       // Only react when we have an active task; if taskId is missing, treat it as best-effort.
       if (!currentRetranslateTaskId) return;
@@ -600,6 +856,11 @@ async function init(): Promise<void> {
   // Load and populate settings
   const settings = await loadSettings();
   populateForm(settings);
+
+  if (settings.showCostEstimate) {
+    sessionCostState = await loadSessionCost();
+    renderCostDisplay();
+  }
 
   // Event listeners
   elements.provider.addEventListener('change', handleProviderChange);
