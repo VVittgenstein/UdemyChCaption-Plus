@@ -68,7 +68,8 @@
         "video-player-dom"
       ],
       "artifacts": [
-        "spike-report-track-inject.md"
+        "spike-report-track-inject.md",
+        "Compact/Compact-T-20251223-act-001-spike-track-inject-2025-12-23-T131857Z.md"
       ],
       "citations": [
         "EVID-006",
@@ -117,39 +118,59 @@
       ],
       "lane": "now",
       "priority_suggested": "P0",
-      "status": "todo",
+      "status": "completed",
+      "status_note": "Spike 验证完成！Curriculum API 方案可行，成功获取 224 个课程项并正确识别下一课。推荐使用 subscriber-curriculum-items API。",
       "dependencies": [],
-      "blocked": true,
+      "blocked": false,
       "blocked_by": [
         {
           "dep_id": "DEP-003",
           "name": "Udemy Web 前端 (Video.js)",
           "type": "access",
-          "status": "unknown",
+          "status": "verified",
           "doc_url": "",
-          "note": "页面结构可能变化，需实际分析当前版本"
+          "note": "已验证 (2025-12-23): Curriculum API 可用，返回完整课程结构"
         }
       ],
       "unblock_plan": "在 Udemy 课程页 DevTools 中分析 DOM 结构和 window 对象数据",
       "estimate_h": 3,
       "interfaces_touched": [
         "content-script",
-        "udemy-page-structure"
+        "udemy-page-structure",
+        "udemy-curriculum-api"
       ],
       "artifacts": [
-        "spike-report-next-lecture.md"
+        "spike-report-next-lecture.md",
+        "Compact/Compact-T-20251223-act-002-spike-next-lecture.md"
       ],
       "citations": [
         "EVID-008"
       ],
       "created_at": "2025-12-23T12:00:00Z",
-      "updated_at": "2025-12-23T12:00:00Z",
-      "owner": "tbd",
+      "updated_at": "2025-12-23T16:30:00Z",
+      "completed_at": "2025-12-23T16:30:00Z",
+      "owner": "claude-code",
       "tags": [
         "seed:ACT-002",
         "spike",
         "preload"
-      ]
+      ],
+      "completion_summary": {
+        "deliverables": ["spike-report-next-lecture.md"],
+        "key_findings": [
+          "Curriculum API 完全可行: api-2.0/courses/{id}/subscriber-curriculum-items/",
+          "API 返回完整课程结构 (224 项)，包含 lecture/chapter/quiz/practice",
+          "DOM 方案受限: Udemy 使用 React + onClick，无传统 <a> 标签",
+          "侧边栏懒加载，只渲染当前章节项目",
+          "go-to-next 按钮存在但无直接 href"
+        ],
+        "recommended_approach": "Curriculum API (subscriber-curriculum-items)",
+        "api_endpoint": "https://www.udemy.com/api-2.0/courses/{courseId}/subscriber-curriculum-items/",
+        "verification_date": "2025-12-23T16:30:00Z",
+        "verified_on_url": "https://www.udemy.com/course/2d-rpg-alexdev/learn/lecture/36963178",
+        "test_course_id": "5059176",
+        "next_steps": ["集成到预加载模块 (ACT-011)", "添加缓存机制", "建立 API 变化监控"]
+      }
     },
     "T-20251223-act-003-spike-mv3-sw-lifecycle": {
       "execution_order": 3,
