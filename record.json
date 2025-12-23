@@ -249,7 +249,8 @@
       ],
       "lane": "now",
       "priority_suggested": "P0",
-      "status": "todo",
+      "status": "completed",
+      "status_note": "架构设计已完成并通过评审。包含整体架构图、模块职责定义、API 调用流程图、技术决策记录。基于 3 个 Spike 验证结果设计，采用 Data URI 注入 + 流式 API + Chrome API 保活方案。✅ 评审通过，已进行多次修改。",
       "dependencies": [
         "T-20251223-act-001-spike-track-inject",
         "T-20251223-act-003-spike-mv3-sw-lifecycle"
@@ -266,20 +267,40 @@
       ],
       "artifacts": [
         "architecture.md",
-        "architecture-diagram.png"
+        "architecture-diagram.png",
+        "Compact/Compact-T-20251223-act-004-design-architecture-2025-12-23-T193500Z.md"
       ],
       "citations": [
         "EVID-011"
       ],
       "created_at": "2025-12-23T12:00:00Z",
-      "updated_at": "2025-12-23T12:00:00Z",
-      "owner": "tbd",
+      "updated_at": "2025-12-23T20:30:00Z",
+      "completed_at": "2025-12-23T20:30:00Z",
+      "owner": "claude-code",
       "tags": [
         "seed:ACT-004",
         "design",
         "architecture",
         "mvp-critical"
-      ]
+      ],
+      "completion_summary": {
+        "deliverables": ["architecture.md", "architecture-diagram.png"],
+        "key_contents": [
+          "整体架构图 (ASCII): Content Script / Service Worker / Popup / Storage 四层架构",
+          "模块职责定义: 14 个模块的接口定义和职责边界",
+          "核心流程图: 字幕翻译主流程、预加载流程",
+          "消息协议: Content Script ↔ Service Worker ↔ Popup 通信协议",
+          "技术决策: Data URI 注入、流式 API、Curriculum API、Chrome 110+ 最低版本"
+        ],
+        "design_decisions": [
+          "字幕注入: Data URI 方式 (验证自 ACT-001)",
+          "LLM 调用: 流式 API + Chrome API 保活 (验证自 ACT-003)",
+          "下一课 ID: Curriculum API (验证自 ACT-002)",
+          "最低 Chrome 版本: 110+"
+        ],
+        "directory_structure": "src/{background,content,popup,storage,utils,types}/",
+        "next_unblocked_tasks": ["ACT-005", "ACT-006", "ACT-009", "ACT-010"]
+      }
     },
     "T-20251223-act-005-build-subtitle-fetch": {
       "execution_order": 5,
