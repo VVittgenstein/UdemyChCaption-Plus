@@ -659,7 +659,8 @@
       ],
       "lane": "now",
       "priority_suggested": "P1",
-      "status": "todo",
+      "status": "completed",
+      "status_note": "本地缓存模块实现完成！使用 IndexedDB 存储翻译结果，支持课程/课时 ID 作为缓存键，包含原字幕哈希校验、LRU 淘汰机制、完整的 CRUD 接口。38 个单元测试全部通过。",
       "dependencies": [
         "T-20251223-act-004-design-architecture"
       ],
@@ -672,21 +673,97 @@
         "indexeddb"
       ],
       "artifacts": [
-        "src/storage/subtitle-cache.ts"
+        "src/storage/subtitle-cache.ts",
+        "src/storage/__tests__/subtitle-cache.test.ts",
+        "src/test-setup.ts",
+        "Compact/Compact-T-20251223-act-010-build-local-cache-2025-12-23-T184619Z.md"
       ],
       "citations": [
         "EVID-007"
       ],
       "created_at": "2025-12-23T12:00:00Z",
-      "updated_at": "2025-12-23T12:00:00Z",
-      "owner": "tbd",
+      "updated_at": "2025-12-23T18:46:19Z",
+      "completed_at": "2025-12-23T18:46:19Z",
+      "owner": "claude-code",
       "tags": [
         "seed:ACT-010",
         "build",
         "FR-07",
         "cache",
         "NFR-03"
-      ]
+      ],
+      "completion_summary": {
+        "deliverables": [
+          "src/storage/subtitle-cache.ts - 主模块 (450+ 行)",
+          "src/storage/__tests__/subtitle-cache.test.ts - 单元测试 (38 个测试用例)",
+          "src/test-setup.ts - Jest 测试配置 (structuredClone polyfill)"
+        ],
+        "key_features": {
+          "storage": [
+            "IndexedDB 持久化存储，浏览器重启后数据保留",
+            "缓存键: courseId-lectureId 唯一标识",
+            "数据结构: 课程/课时 ID、原字幕哈希、翻译 VTT、模型版本、token 消耗、费用估算、时间戳"
+          ],
+          "crud_operations": [
+            "getCache() - 查询缓存，支持哈希校验",
+            "setCache() - 写入/更新缓存条目",
+            "deleteCache() - 删除单个条目",
+            "deleteCourseCache() - 删除整个课程的所有缓存",
+            "clearAllCache() - 清空所有缓存"
+          ],
+          "query_operations": [
+            "getCourseEntries() - 获取课程的所有缓存条目",
+            "getAllEntries() - 获取全部缓存条目",
+            "getCacheCount() - 获取缓存条目总数",
+            "getCacheStats() - 获取缓存统计信息 (大小、token 消耗、费用累计等)"
+          ],
+          "lru_eviction": [
+            "基于 updatedAt 时间戳的 LRU 淘汰策略",
+            "可配置最大条目数 (默认 500)",
+            "可配置最大缓存大小 (默认 100MB)",
+            "touchCache() 更新访问时间",
+            "evictIfNeeded() 自动触发淘汰",
+            "cleanupCache() 手动清理"
+          ],
+          "api_interface": [
+            "函数式 API: getCache, setCache, deleteCache 等",
+            "类式 API: SubtitleCache 类，支持选项配置",
+            "单例导出: subtitleCache 默认实例"
+          ]
+        },
+        "types_used": [
+          "SubtitleCacheEntry - 缓存条目类型 (已在 types/index.ts 定义)",
+          "CacheOptions - 缓存配置选项",
+          "CacheStats - 缓存统计信息",
+          "CacheLookupResult - 缓存查询结果",
+          "CacheEntryInput - 缓存写入输入"
+        ],
+        "test_coverage": {
+          "total_tests": 38,
+          "categories": [
+            "generateCacheKey (3 tests)",
+            "setCache/getCache (4 tests)",
+            "deleteCache (2 tests)",
+            "deleteCourseCache (2 tests)",
+            "clearAllCache (1 test)",
+            "getCourseEntries (2 tests)",
+            "getAllEntries (2 tests)",
+            "getCacheCount (1 test)",
+            "getCacheStats (2 tests)",
+            "evictIfNeeded (2 tests)",
+            "touchCache (2 tests)",
+            "cleanupCache (1 test)",
+            "SubtitleCache class (10 tests)",
+            "subtitleCache singleton (2 tests)",
+            "Utility functions (2 tests)"
+          ]
+        },
+        "next_steps": [
+          "与 LLM 翻译模块集成 (ACT-007): 翻译完成后调用 setCache 存储",
+          "与字幕抓取模块集成 (ACT-005): 抓取前调用 getCache 检查缓存",
+          "与字幕版本检测模块集成 (ACT-012): 使用 originalHash 校验字幕变化"
+        ]
+      }
     },
     "T-20251223-act-007-build-llm-translator": {
       "execution_order": 9,
