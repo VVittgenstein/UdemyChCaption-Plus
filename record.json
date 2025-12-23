@@ -323,7 +323,8 @@
       ],
       "lane": "now",
       "priority_suggested": "P1",
-      "status": "todo",
+      "status": "completed",
+      "status_note": "字幕抓取模块实现完成！包含视频检测、字幕轨道提取、VTT 内容下载、语言优先级选择等核心功能。提供函数式和类式两种 API。单元测试覆盖主要功能。",
       "dependencies": [
         "T-20251223-act-001-spike-track-inject",
         "T-20251223-act-004-design-architecture"
@@ -337,20 +338,72 @@
         "udemy-video-player"
       ],
       "artifacts": [
-        "src/content/subtitle-fetcher.ts"
+        "src/content/subtitle-fetcher.ts",
+        "src/content/__tests__/subtitle-fetcher.test.ts",
+        "src/types/index.ts",
+        "package.json",
+        "tsconfig.json",
+        "jest.config.js",
+        "Compact/Compact-T-20251223-act-005-build-subtitle-fetch-2025-12-24-T003500Z.md"
       ],
       "citations": [
         "EVID-008"
       ],
       "created_at": "2025-12-23T12:00:00Z",
-      "updated_at": "2025-12-23T12:00:00Z",
-      "owner": "tbd",
+      "updated_at": "2025-12-24T01:15:00Z",
+      "completed_at": "2025-12-24T00:30:00Z",
+      "owner": "claude-code",
       "tags": [
         "seed:ACT-005",
         "build",
         "core",
         "FR-01"
-      ]
+      ],
+      "code_review": {
+        "status": "passed",
+        "reviewed_at": "2025-12-24T01:15:00Z",
+        "findings_resolved": 3,
+        "fixes": [
+          "isValidVTT: 添加 BOM (U+FEFF) 前缀剥离，修复 BOM-prefixed VTT 文件被拒绝的问题",
+          "jest.config.js: 移除 useESM: true，项目为 CommonJS，ts-jest 现在正确输出 CJS 模块",
+          "getSubtitleTracks: TextTrack API 分支现在检查 URL 是否有效，若所有轨道 URL 为空则继续尝试 network-intercept 方法"
+        ]
+      },
+      "completion_summary": {
+        "deliverables": [
+          "src/content/subtitle-fetcher.ts - 主模块 (400+ 行)",
+          "src/types/index.ts - 类型定义",
+          "src/content/__tests__/subtitle-fetcher.test.ts - 单元测试",
+          "package.json, tsconfig.json, jest.config.js - 项目配置"
+        ],
+        "key_features": [
+          "视频检测: 3秒超时轮询，多选择器支持",
+          "课程信息提取: URL 解析 + Performance API + UD 对象",
+          "字幕轨道提取: DOM <track>、TextTrack API、网络拦截三种方式",
+          "VTT 下载: 带超时的 fetch，格式校验 (支持 BOM 前缀)，SHA-256 哈希",
+          "语言优先级: en > en-US > en-GB > 其他英语 > 默认 > 首个",
+          "日志系统: 可配置级别的控制台输出"
+        ],
+        "api_exports": [
+          "fetchSubtitles() - 一键获取字幕的主入口",
+          "detectVideo() - 检测视频元素",
+          "getSubtitleTracks() - 获取字幕轨道列表",
+          "fetchVTT() - 下载 VTT 内容",
+          "selectPreferredTrack() - 选择首选轨道",
+          "SubtitleFetcher class - 面向对象接口"
+        ],
+        "test_coverage": [
+          "课程信息提取测试",
+          "轨道选择逻辑测试",
+          "VTT 获取和校验测试",
+          "边界情况测试"
+        ],
+        "next_steps": [
+          "集成测试在真实 Udemy 页面验证 (需浏览器环境)",
+          "与 track-injector 模块集成 (ACT-008)",
+          "与消息桥接模块配合 (发送字幕到 Service Worker)"
+        ]
+      }
     },
     "T-20251223-act-006-build-webvtt-parser": {
       "execution_order": 6,

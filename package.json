@@ -1,0 +1,35 @@
+{
+  "name": "udemy-ch-caption-plus",
+  "version": "0.1.0",
+  "description": "Chrome extension for LLM-powered Chinese subtitle replacement on Udemy",
+  "private": true,
+  "scripts": {
+    "build": "tsc",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "lint": "eslint src/**/*.ts",
+    "type-check": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.0.260",
+    "@types/jest": "^29.5.12",
+    "@types/node": "^20.11.0",
+    "jest": "^29.7.0",
+    "jest-environment-jsdom": "^29.7.0",
+    "ts-jest": "^29.1.2",
+    "typescript": "^5.3.3"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "keywords": [
+    "chrome-extension",
+    "udemy",
+    "subtitle",
+    "translation",
+    "llm"
+  ],
+  "author": "",
+  "license": "MIT"
+}
