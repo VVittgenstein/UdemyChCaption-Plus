@@ -47,17 +47,18 @@
       ],
       "lane": "now",
       "priority_suggested": "P0",
-      "status": "todo",
+      "status": "completed",
+      "status_note": "Spike 验证完成！Data URI、Blob URL、addTextTrack API 三种方案均可行。实测字幕注入成功，时间同步正常，无 CSP 拦截。推荐 Data URI 作为首选方案。",
       "dependencies": [],
-      "blocked": true,
+      "blocked": false,
       "blocked_by": [
         {
           "dep_id": "DEP-003",
           "name": "Udemy Web 前端 (Video.js)",
           "type": "access",
-          "status": "unknown",
+          "status": "verified",
           "doc_url": "",
-          "note": "需验证当前 Udemy 页面是否允许动态添加 <track> 元素"
+          "note": "已验证：Udemy 允许动态添加 <track> 元素，无 CSP 阻止"
         }
       ],
       "unblock_plan": "实际在 Udemy 课程页执行注入代码验证，记录 DOM 结构和可行方案",
@@ -74,14 +75,29 @@
         "EVID-008"
       ],
       "created_at": "2025-12-23T12:00:00Z",
-      "updated_at": "2025-12-23T12:00:00Z",
-      "owner": "tbd",
+      "updated_at": "2025-12-23T15:30:00Z",
+      "completed_at": "2025-12-23T15:30:00Z",
+      "owner": "claude-code",
       "tags": [
         "seed:ACT-001",
         "spike",
         "blocking",
         "mvp-critical"
-      ]
+      ],
+      "completion_summary": {
+        "deliverables": ["spike-report-track-inject.md"],
+        "key_findings": [
+          "Data URI 方案实测可行，字幕正常显示，时间同步正确",
+          "Blob URL 方案可行，轨道成功创建",
+          "addTextTrack API 可行，无需外部 URL",
+          "无 CSP 拦截，三种方案均可用",
+          "Track count 从 0 增加到 3，字幕菜单成功更新"
+        ],
+        "recommended_approach": "Data URI (base64 编码 VTT 内容) - 已验证",
+        "verification_date": "2025-12-23T13:05:33.956Z",
+        "verified_on_url": "https://www.udemy.com/course/2d-rpg-alexdev/learn/lecture/36963178",
+        "next_steps": ["推进 track-injector 模块开发 (ACT-008)", "验证全屏模式字幕样式"]
+      }
     },
     "T-20251223-act-002-spike-next-lecture": {
       "execution_order": 2,
@@ -842,8 +858,9 @@
     {
       "id": "Q-01",
       "question": "Udemy 播放器是否允许动态添加 <track> 元素？需 Spike 验证后确认技术路径。",
-      "answer": "目前尚未验证",
-      "status": "pending_verification"
+      "answer": "是，已验证通过。Data URI、Blob URL、addTextTrack API 三种方案均可行，无 CSP 拦截。推荐使用 Data URI 方案。",
+      "status": "resolved",
+      "resolved_date": "2025-12-23"
     },
     {
       "id": "Q-03",
@@ -875,7 +892,7 @@
     "Udemy 网站短期内不会大幅重构播放器导致扩展完全失效",
     "用户主要观看有英文字幕的课程（无原文字幕暂不支持）",
     "Chrome Manifest V3 的 Service Worker 生命周期限制可通过已知方案规避",
-    "data URI 或 chrome.runtime.getURL 方式可绕过 Udemy 页面 CSP"
+    "[已验证] data URI 或 Blob URL 方式可绕过 Udemy 页面 CSP - 2025-12-23 实测通过"
   ],
   "risks": [
     {
@@ -962,9 +979,9 @@
       "dep_id": "DEP-003",
       "name": "Udemy Web 前端 (Video.js)",
       "type": "access",
-      "status": "unknown",
+      "status": "verified",
       "doc_url": "",
-      "note": "Udemy 可能随时更新播放器实现，导致选择器失效或 track 注入被阻止；需 Spike 验证",
+      "note": "已验证 (2025-12-23): 当前 Udemy 页面允许动态添加 <track> 元素，Data URI/Blob URL/addTextTrack 均可用，无 CSP 拦截。需持续监控播放器更新。",
       "citations": [
         "EVID-008"
       ]
