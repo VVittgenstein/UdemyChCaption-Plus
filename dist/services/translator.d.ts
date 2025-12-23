@@ -37,6 +37,8 @@ export interface TranslationOptions {
     signal?: AbortSignal;
     /** Max duration per batch in milliseconds (default: 600000 = 10 minutes) */
     maxBatchDurationMs?: number;
+    /** Progress callback (0-100) */
+    onProgress?: (progress: number) => void;
 }
 /**
  * Course context for translation

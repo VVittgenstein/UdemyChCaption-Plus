@@ -260,7 +260,17 @@ export function validateTranslatedVTT(original, translated) {
  */
 export async function translateVTT(vttContent, options) {
     const startTime = Date.now();
-    const { provider, apiKey, model, courseContext, timeout = DEFAULT_TIMEOUT, maxRetries = DEFAULT_MAX_RETRIES, temperature = DEFAULT_TEMPERATURE, maxBatchDurationMs = DEFAULT_MAX_BATCH_DURATION_MS, signal, } = options;
+    const { provider, apiKey, model, courseContext, timeout = DEFAULT_TIMEOUT, maxRetries = DEFAULT_MAX_RETRIES, temperature = DEFAULT_TEMPERATURE, maxBatchDurationMs = DEFAULT_MAX_BATCH_DURATION_MS, signal, onProgress, } = options;
+    const reportProgress = (progress) => {
+        if (!onProgress)
+            return;
+        try {
+            onProgress(progress);
+        }
+        catch (e) {
+            log('warn', 'onProgress callback error:', e);
+        }
+    };
     // Parse VTT content
     const parseResult = parseVTT(vttContent);
     if (!parseResult.success || !parseResult.data) {
@@ -283,6 +293,7 @@ export async function translateVTT(vttContent, options) {
     const batches = splitVTTByDuration(vttFile, maxBatchDurationMs);
     const batchCount = batches.length;
     log('info', `Translating ${cueCount} cues in ${batchCount} batch(es) using ${provider}/${model}`);
+    reportProgress(0);
     // Translate each batch
     const translatedBatches = [];
     let totalPromptTokens = 0;
@@ -314,6 +325,8 @@ export async function translateVTT(vttContent, options) {
         translatedBatches.push(result.vttFile);
         totalPromptTokens += result.promptTokens || 0;
         totalCompletionTokens += result.completionTokens || 0;
+        const progress = Math.round(((batchIndex + 1) / batchCount) * 100);
+        reportProgress(progress);
     }
     // Merge all translated batches
     const mergedVTT = mergeVTTFiles(translatedBatches);
@@ -323,6 +336,7 @@ export async function translateVTT(vttContent, options) {
     const cost = calculateCost(model, tokensUsed);
     const durationMs = Date.now() - startTime;
     log('info', `Translation complete in ${durationMs}ms, ${tokensUsed} tokens, $${cost.toFixed(6)}`);
+    reportProgress(100);
     return {
         success: true,
         translatedVTT: translatedVTTContent,

@@ -51,6 +51,8 @@ const API_ENDPOINTS = {
     gemini: 'https://generativelanguage.googleapis.com/v1beta/models',
 };
 let elements;
+let statusAutoHideTimer = null;
+let currentRetranslateTaskId = null;
 // ============================================
 // Storage Functions
 // ============================================
@@ -225,6 +227,7 @@ function getDOMElements() {
         model: document.getElementById('model'),
         toggleApiKeyVisibility: document.getElementById('toggle-apikey-visibility'),
         saveBtn: document.getElementById('save-btn'),
+        retranslateBtn: document.getElementById('retranslate-btn'),
         statusMessage: document.getElementById('status-message'),
         validationResult: document.getElementById('validation-result'),
         autoTranslate: document.getElementById('autoTranslate'),
@@ -245,14 +248,21 @@ function updateModelOptions(provider) {
 /**
  * Show status message
  */
-function showStatus(message, type) {
+function showStatus(message, type, autoHide = true) {
+    if (statusAutoHideTimer) {
+        clearTimeout(statusAutoHideTimer);
+        statusAutoHideTimer = null;
+    }
     elements.statusMessage.textContent = message;
     elements.statusMessage.className = `status-message ${type}`;
     elements.statusMessage.classList.remove('hidden');
-    // Auto-hide after 3 seconds
-    setTimeout(() => {
-        elements.statusMessage.classList.add('hidden');
-    }, 3000);
+    if (autoHide) {
+        // Auto-hide after 3 seconds
+        statusAutoHideTimer = window.setTimeout(() => {
+            elements.statusMessage.classList.add('hidden');
+            statusAutoHideTimer = null;
+        }, 3000);
+    }
 }
 /**
  * Show validation result
@@ -279,6 +289,19 @@ function setButtonLoading(loading) {
     else {
         elements.saveBtn.classList.remove('loading');
         elements.saveBtn.disabled = false;
+    }
+}
+/**
+ * Set retranslate button loading state
+ */
+function setRetranslateButtonLoading(loading) {
+    if (loading) {
+        elements.retranslateBtn.classList.add('loading');
+        elements.retranslateBtn.disabled = true;
+    }
+    else {
+        elements.retranslateBtn.classList.remove('loading');
+        elements.retranslateBtn.disabled = false;
     }
 }
 /**
@@ -412,6 +435,80 @@ async function handleFormSubmit(event) {
     }
 }
 // ============================================
+// Retranslate Handlers
+// ============================================
+function generateTaskId() {
+    return `retranslate-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+async function getActiveUdemyTabId() {
+    if (typeof chrome === 'undefined' || !chrome.tabs?.query)
+        return null;
+    const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+    const tab = tabs[0];
+    if (!tab?.id)
+        return null;
+    // Best-effort URL check: only allow udemy pages
+    if (tab.url && !/\/\/([^/]*\.)?udemy\.com\//i.test(tab.url)) {
+        return null;
+    }
+    return tab.id;
+}
+async function handleRetranslateClick() {
+    const tabId = await getActiveUdemyTabId();
+    if (!tabId) {
+        showStatus('请先打开 Udemy 课程播放页', 'error');
+        return;
+    }
+    const taskId = generateTaskId();
+    currentRetranslateTaskId = taskId;
+    setRetranslateButtonLoading(true);
+    showStatus('已发起重译请求…', 'info', false);
+    try {
+        await chrome.tabs.sendMessage(tabId, {
+            type: 'RETRANSLATE_CURRENT',
+            payload: { taskId },
+        });
+    }
+    catch (error) {
+        currentRetranslateTaskId = null;
+        setRetranslateButtonLoading(false);
+        showStatus('发送失败：请刷新课程页后重试', 'error');
+    }
+}
+function setupRetranslateMessageListener() {
+    if (typeof chrome === 'undefined' || !chrome.runtime?.onMessage)
+        return;
+    chrome.runtime.onMessage.addListener((message) => {
+        if (!message || typeof message !== 'object')
+            return;
+        if (message.type === 'TRANSLATION_PROGRESS') {
+            const taskId = message.payload?.taskId;
+            const progress = message.payload?.progress;
+            if (!currentRetranslateTaskId || taskId !== currentRetranslateTaskId)
+                return;
+            if (typeof progress !== 'number')
+                return;
+            const clamped = Math.max(0, Math.min(100, Math.round(progress)));
+            showStatus(`重译中… ${clamped}%`, 'info', false);
+            return;
+        }
+        if (message.type === 'TRANSLATION_COMPLETE') {
+            const payload = message.payload;
+            const taskId = payload?.taskId;
+            // Only react when we have an active task; if taskId is missing, treat it as best-effort.
+            if (!currentRetranslateTaskId)
+                return;
+            if (taskId && taskId !== currentRetranslateTaskId)
+                return;
+            const success = payload?.success === true;
+            const errorText = payload?.error;
+            currentRetranslateTaskId = null;
+            setRetranslateButtonLoading(false);
+            showStatus(success ? '重译完成' : `重译失败：${errorText || '未知错误'}`, success ? 'success' : 'error');
+        }
+    });
+}
+// ============================================
 // Initialization
 // ============================================
 /**
@@ -432,6 +529,9 @@ async function init() {
     elements.preloadEnabled.addEventListener('change', () => handleAdditionalSettingChange('preloadEnabled'));
     elements.showCostEstimate.addEventListener('change', () => handleAdditionalSettingChange('showCostEstimate'));
     elements.showLoadingIndicator.addEventListener('change', () => handleAdditionalSettingChange('showLoadingIndicator'));
+    // Manual retranslate button
+    elements.retranslateBtn.addEventListener('click', handleRetranslateClick);
+    setupRetranslateMessageListener();
     // Hide validation result when API key changes
     elements.apiKey.addEventListener('input', hideValidationResult);
 }

@@ -47,6 +47,8 @@ export interface TranslationOptions {
   signal?: AbortSignal;
   /** Max duration per batch in milliseconds (default: 600000 = 10 minutes) */
   maxBatchDurationMs?: number;
+  /** Progress callback (0-100) */
+  onProgress?: (progress: number) => void;
 }
 
 /**
@@ -408,7 +410,17 @@ export async function translateVTT(
     temperature = DEFAULT_TEMPERATURE,
     maxBatchDurationMs = DEFAULT_MAX_BATCH_DURATION_MS,
     signal,
+    onProgress,
   } = options;
+
+  const reportProgress = (progress: number): void => {
+    if (!onProgress) return;
+    try {
+      onProgress(progress);
+    } catch (e) {
+      log('warn', 'onProgress callback error:', e);
+    }
+  };
 
   // Parse VTT content
   const parseResult = parseVTT(vttContent);
@@ -436,6 +448,7 @@ export async function translateVTT(
   const batchCount = batches.length;
 
   log('info', `Translating ${cueCount} cues in ${batchCount} batch(es) using ${provider}/${model}`);
+  reportProgress(0);
 
   // Translate each batch
   const translatedBatches: VTTFile[] = [];
@@ -486,6 +499,9 @@ export async function translateVTT(
     translatedBatches.push(result.vttFile);
     totalPromptTokens += result.promptTokens || 0;
     totalCompletionTokens += result.completionTokens || 0;
+
+    const progress = Math.round(((batchIndex + 1) / batchCount) * 100);
+    reportProgress(progress);
   }
 
   // Merge all translated batches
@@ -498,6 +514,7 @@ export async function translateVTT(
   const durationMs = Date.now() - startTime;
 
   log('info', `Translation complete in ${durationMs}ms, ${tokensUsed} tokens, $${cost.toFixed(6)}`);
+  reportProgress(100);
 
   return {
     success: true,

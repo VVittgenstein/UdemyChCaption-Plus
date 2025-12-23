@@ -19,6 +19,7 @@ import type {
   CourseInfo,
   AsyncResult,
 } from '../types';
+import { calculateHash } from '../utils/hash';
 
 // ============================================
 // Constants
@@ -556,35 +557,6 @@ function isValidVTT(content: string): boolean {
   // Strip BOM (U+FEFF) if present - common from some CDNs
   const stripped = content.replace(/^\uFEFF/, '').trim();
   return stripped.startsWith('WEBVTT');
-}
-
-/**
- * Calculate SHA-256 hash of content
- */
-async function calculateHash(content: string): Promise<string> {
-  try {
-    const encoder = new TextEncoder();
-    const data = encoder.encode(content);
-    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
-  } catch (e) {
-    // Fallback for environments without crypto.subtle
-    return simpleHash(content);
-  }
-}
-
-/**
- * Simple hash fallback
- */
-function simpleHash(str: string): string {
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    const char = str.charCodeAt(i);
-    hash = (hash << 5) - hash + char;
-    hash = hash & hash; // Convert to 32bit integer
-  }
-  return Math.abs(hash).toString(16).padStart(8, '0');
 }
 
 // ============================================

@@ -1042,7 +1042,8 @@
       ],
       "lane": "next",
       "priority_suggested": "P2",
-      "status": "todo",
+      "status": "completed",
+      "status_note": "字幕版本检测与重译功能实现完成！新增 version-checker 基于 originalHash 校验缓存有效性，支持字幕哈希变化自动重译与强制重译覆盖缓存；Popup 增加“重新翻译当前课”按钮并实时显示进度；补齐 Service Worker 翻译处理与 Content Script 入口点联动缓存/注入。新增 5 个单元测试全部通过，并通过 type-check。",
       "dependencies": [
         "T-20251223-act-007-build-llm-translator",
         "T-20251223-act-010-build-local-cache"
@@ -1057,19 +1058,61 @@
         "storage"
       ],
       "artifacts": [
-        "src/services/version-checker.ts"
+        "src/services/version-checker.ts",
+        "src/services/__tests__/version-checker.test.ts",
+        "src/utils/hash.ts",
+        "src/background/service-worker.ts",
+        "src/content/content-script.ts",
+        "src/popup/popup.html",
+        "src/popup/popup.ts",
+        "src/popup/popup.css",
+        "src/services/translator.ts",
+        "src/services/__tests__/translator.test.ts",
+        "src/content/subtitle-fetcher.ts",
+        "src/types/index.ts"
       ],
       "citations": [
         "EVID-001"
       ],
       "created_at": "2025-12-23T12:00:00Z",
-      "updated_at": "2025-12-23T12:00:00Z",
-      "owner": "tbd",
+      "updated_at": "2025-12-23T22:11:01Z",
+      "completed_at": "2025-12-23T22:11:01Z",
+      "owner": "codex-cli",
       "tags": [
         "seed:ACT-012",
         "build",
         "FR-08"
-      ]
+      ],
+      "completion_summary": {
+        "deliverables": [
+          "src/services/version-checker.ts - 字幕版本检测与重译决策",
+          "src/background/service-worker.ts - 翻译请求处理、缓存校验与进度广播",
+          "src/content/content-script.ts - Popup 触发重译与翻译结果注入",
+          "src/popup/popup.html / src/popup/popup.ts / src/popup/popup.css - 重译按钮与进度提示 UI"
+        ],
+        "key_features": {
+          "versioning": [
+            "originalHash 校验缓存命中有效性",
+            "字幕哈希变化时自动触发重译并更新缓存",
+            "force 模式强制覆盖缓存（手动重译）"
+          ],
+          "ux": [
+            "Popup 提供“重新翻译当前课”按钮",
+            "重译过程在 Popup 实时显示进度与结果"
+          ],
+          "integration": [
+            "Service Worker 负责翻译与缓存写入",
+            "Content Script 负责抓取字幕与注入译文轨道"
+          ]
+        },
+        "test_coverage": {
+          "added_tests": 5,
+          "commands": [
+            "npm test",
+            "npm run type-check"
+          ]
+        }
+      }
     },
     "T-20251223-act-016-build-cost-estimate": {
       "execution_order": 12,

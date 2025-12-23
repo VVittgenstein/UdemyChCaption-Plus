@@ -251,6 +251,24 @@ body {
   cursor: not-allowed;
 }
 
+.btn-secondary {
+  background: #fff;
+  color: #a435f0;
+  border: 1px solid #a435f0;
+  width: 100%;
+}
+
+.btn-secondary:hover {
+  background: rgba(164, 53, 240, 0.08);
+}
+
+.btn-secondary:disabled {
+  opacity: 0.6;
+  border-color: #ccc;
+  color: #999;
+  cursor: not-allowed;
+}
+
 .form-actions {
   margin-top: 4px;
 }
@@ -283,6 +301,11 @@ body {
   border-top-color: #fff;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
+}
+
+.btn-secondary .spinner {
+  border-color: rgba(164, 53, 240, 0.25);
+  border-top-color: #a435f0;
 }
 
 @keyframes spin {
@@ -360,6 +383,12 @@ body {
 
 /* Additional Settings */
 .additional-settings {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.manual-actions {
   display: flex;
   flex-direction: column;
   gap: 10px;

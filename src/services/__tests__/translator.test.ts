@@ -755,6 +755,34 @@ describe('translateVTT', () => {
     expect(mockChatCompletion).toHaveBeenCalledTimes(2);
   });
 
+  it('should report progress for batched translation', async () => {
+    mockChatCompletion
+      .mockResolvedValueOnce({
+        success: true,
+        content: longVTTTranslatedPart1,
+        totalTokens: 150,
+      })
+      .mockResolvedValueOnce({
+        success: true,
+        content: longVTTTranslatedPart2,
+        totalTokens: 120,
+      });
+
+    const updates: number[] = [];
+    const result = await translateVTT(longVTT, {
+      provider: 'openai',
+      apiKey: 'test-key',
+      model: 'gpt-5.1',
+      maxBatchDurationMs: 10 * 60 * 1000,
+      onProgress: (p) => updates.push(p),
+    });
+
+    expect(result.success).toBe(true);
+    expect(updates[0]).toBe(0);
+    expect(updates).toContain(50);
+    expect(updates[updates.length - 1]).toBe(100);
+  });
+
   it('should retry on invalid VTT response', async () => {
     mockChatCompletion
       .mockResolvedValueOnce({

@@ -82,6 +82,8 @@ export interface TranslateRequest {
     taskId: string;
     /** VTT content to translate */
     vttContent: string;
+    /** Hash of original subtitle content (for cache validation) */
+    originalHash?: string;
     /** Course ID */
     courseId: string;
     /** Lecture ID */
@@ -90,6 +92,10 @@ export interface TranslateRequest {
     courseName?: string;
     /** Section name for context */
     sectionName?: string;
+    /** Lecture name for context */
+    lectureName?: string;
+    /** Force retranslation even if cache matches */
+    force?: boolean;
     /** LLM provider */
     provider: 'openai' | 'gemini';
     /** Model name */
@@ -101,6 +107,8 @@ export interface TranslateRequest {
 export interface TranslateResult {
     /** Whether translation succeeded */
     success: boolean;
+    /** Task identifier (for correlating progress/completion) */
+    taskId?: string;
     /** Translated VTT content */
     translatedVTT?: string;
     /** Error message if failed */
@@ -152,6 +160,7 @@ export type MessageToContent = {
     type: 'CACHE_HIT';
     payload: {
         translatedVTT: string;
+        taskId?: string;
     };
 } | {
     type: 'CACHE_MISS';
