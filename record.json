@@ -426,7 +426,8 @@
       ],
       "lane": "now",
       "priority_suggested": "P1",
-      "status": "todo",
+      "status": "completed",
+      "status_note": "WebVTT 解析与生成模块实现完成！解析器支持标准 WebVTT 格式（cue ID、时间戳、多行文本、样式块、区域、注释）。生成器可完整还原 VTT 结构。61 个单元测试全部通过，包含完整的 Round-Trip 验证。",
       "dependencies": [
         "T-20251223-act-004-design-architecture"
       ],
@@ -439,21 +440,87 @@
       ],
       "artifacts": [
         "src/utils/webvtt-parser.ts",
-        "src/utils/webvtt-generator.ts"
+        "src/utils/webvtt-generator.ts",
+        "src/utils/__tests__/webvtt.test.ts",
+        "src/types/index.ts",
+        "Compact/Compact-T-20251223-act-006-build-webvtt-parser-2025-12-23-T173910Z.md"
       ],
       "citations": [
         "EVID-004",
         "EVID-008"
       ],
       "created_at": "2025-12-23T12:00:00Z",
-      "updated_at": "2025-12-23T12:00:00Z",
-      "owner": "tbd",
+      "updated_at": "2025-12-23T18:00:00Z",
+      "completed_at": "2025-12-23T17:39:10Z",
+      "owner": "claude-code",
       "tags": [
         "seed:ACT-006",
         "build",
         "core",
         "parser"
-      ]
+      ],
+      "code_review": {
+        "status": "passed",
+        "reviewed_at": "2025-12-24T00:30:00Z",
+        "findings_resolved": 3,
+        "fixes": [
+          "includeNotes default: Changed from false to true in DEFAULT_OPTIONS, ensuring NOTE blocks are preserved during parse→generate round-trips (consistent with includeCueIds/includeStyles/includeRegions defaults)",
+          "Region ID parsing: Changed from line.startsWith('id=') to regex /(?:^|\\s)id:([^\\s]+)/ to match WebVTT colon-separated key:value format (e.g., 'id:region1'), fixing silent discard of all REGION blocks",
+          "Region ID regex escape fix: Changed /(?:^|\\\\s)id:([^\\\\s]+)/ to /(?:^|\\s)id:([^\\s]+)/ - the double backslash in regex literal was matching literal backslash+s instead of whitespace character class, causing region IDs to capture subsequent settings (e.g., 'region1 width:40%' instead of 'region1')"
+        ]
+      },
+      "completion_summary": {
+        "deliverables": [
+          "src/utils/webvtt-parser.ts - WebVTT 解析模块 (400+ 行)",
+          "src/utils/webvtt-generator.ts - WebVTT 生成模块 (350+ 行)",
+          "src/utils/__tests__/webvtt.test.ts - 单元测试 (61 个测试用例)",
+          "src/types/index.ts - 新增 WebVTT 类型定义"
+        ],
+        "key_features": {
+          "parser": [
+            "parseVTT: 解析完整 VTT 文件为结构化数据",
+            "parseTimestamp: 解析时间戳 (HH:MM:SS.mmm 或 MM:SS.mmm)",
+            "timestampToMs/msToTimestamp: 时间戳与毫秒互转",
+            "isValidVTT: 验证 VTT 格式",
+            "stripVTTTags: 移除 VTT 样式标签",
+            "getCuesAtTime: 获取指定时间点的字幕",
+            "支持 BOM 前缀处理、Style 块、Region 块、Note 注释"
+          ],
+          "generator": [
+            "generateVTT: 从结构化数据生成完整 VTT 字符串",
+            "generateCue: 生成单个 cue 块",
+            "generateFromCues: 从 cue 数组快速生成 VTT",
+            "generateDataUri: 生成 data URI 用于 <track> 注入",
+            "generateBlobUrl: 生成 Blob URL (浏览器环境)",
+            "replaceCueTexts: 替换字幕文本保持时间戳 (翻译场景)",
+            "mergeVTTFiles: 合并多个 VTT 文件",
+            "validateVTTFile: 验证 VTT 结构"
+          ]
+        },
+        "types_added": [
+          "VTTTimestamp: 时间戳结构",
+          "VTTCue: 字幕条目",
+          "VTTFile: 完整 VTT 文件结构",
+          "VTTRegion: 区域定义",
+          "VTTParseResult: 解析结果",
+          "VTTGeneratorOptions: 生成器选项"
+        ],
+        "test_coverage": {
+          "total_tests": 61,
+          "categories": [
+            "Parser 基础解析 (12 tests)",
+            "Timestamp 处理 (7 tests)",
+            "VTT 验证与工具函数 (8 tests)",
+            "Generator 生成 (17 tests)",
+            "辅助函数 (12 tests)",
+            "Round-Trip 验证 (4 tests)"
+          ]
+        },
+        "next_steps": [
+          "与 LLM 翻译模块集成 (ACT-007): 使用 extractCueTexts 提取文本, replaceCueTexts 替换翻译结果",
+          "与字幕注入模块集成 (ACT-008): 使用 generateDataUri 生成可注入的 VTT"
+        ]
+      }
     },
     "T-20251223-act-009-build-popup-settings": {
       "execution_order": 7,

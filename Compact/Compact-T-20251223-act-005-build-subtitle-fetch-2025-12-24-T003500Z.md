@@ -252,6 +252,56 @@ chrome.runtime.sendMessage({
 }
 ---review-end---
 
+## Code Review - T-20251223-act-005-build-subtitle-fetch - 2025-12-23T17:52:54Z
+
+---review-start---
+{
+  "findings": [
+    {
+      "title": "[P1] Region IDs capture full setting string",
+      "body": "Region parsing uses `line.match(/(?:^|\\\\s)id:([^\\\\s]+)/)` which treats `\\\\s` as a literal backslash+s instead of whitespace, so on a standard region line like `id:region1 width:40% lines:3` the capture runs through the following settings and produces an ID such as `region1 width:40% line`. This makes the parsed `region.id` incorrect and prevents cues with `region:region1` from matching a real region when the line contains multiple settings (the common WebVTT form). The parser should stop the ID at whitespace (`/id:([^\\s]+)/`) instead of swallowing the rest of the line.",
+      "confidence_score": 0.36,
+      "priority": 1,
+      "code_location": {
+        "absolute_file_path": "/mnt/z/Project/UdemyChCaption-Plus/src/utils/webvtt-parser.ts",
+        "line_range": {
+          "start": 333,
+          "end": 341
+        }
+      }
+    }
+  ],
+  "overall_correctness": "patch is incorrect",
+  "overall_explanation": "Region ID parsing is broken for standard region lines with multiple settings, so parsed region identifiers are wrong and region lookups will fail in common inputs.",
+  "overall_confidence_score": 0.36
+}
+---review-end---
+
+## Code Review - T-20251223-act-005-build-subtitle-fetch - 2025-12-23T17:42:42Z
+
+---review-start---
+{
+  "findings": [
+    {
+      "title": "[P2] NOTE blocks dropped on default generation",
+      "body": "The generator defaults `includeNotes` to false, so calling `generateVTT` with parsed data (the default path used by `generateFromCues` or a parse→generate round-trip) silently omits any `NOTE` blocks even though the parser collects them. As a result, a valid VTT containing comments will lose that content when regenerated with default options, breaking the advertised “complete WebVTT structure” round-trip behavior. Consider enabling notes by default or emitting a warning when notes are present but excluded.",
+      "confidence_score": 0.32,
+      "priority": 2,
+      "code_location": {
+        "absolute_file_path": "/mnt/z/Project/UdemyChCaption-Plus/src/utils/webvtt-generator.ts",
+        "line_range": {
+          "start": 33,
+          "end": 39
+        }
+      }
+    }
+  ],
+  "overall_correctness": "patch is incorrect",
+  "overall_explanation": "Default generation drops NOTE blocks collected by the parser, so a parse→generate round-trip loses content and does not fully preserve the original VTT structure.",
+  "overall_confidence_score": 0.33
+}
+---review-end---
+
 ## Code Review - T-20251223-act-005-build-subtitle-fetch - 2025-12-23T16:54:19Z
 
 ---review-start---
@@ -305,5 +355,30 @@ chrome.runtime.sendMessage({
   "overall_correctness": "patch is correct",
   "overall_explanation": "All findings have been resolved. TextTrack API branch now correctly falls through to network-intercept when tracks lack URLs.",
   "overall_confidence_score": 0.69
+}
+---review-end---
+
+## Code Review - T-20251223-act-005-build-subtitle-fetch - 2025-12-23T17:47:29Z
+
+---review-start---
+{
+  "findings": [
+    {
+      "title": "[P1] Region blocks never parsed",
+      "body": "The REGION parser looks for an `id=` prefix (`line.startsWith('id=')`) to capture the region id, but WebVTT region metadata uses colon-separated keys (e.g. `id:region1`). As a result `regionId` remains empty and every REGION block is discarded (`return { region: null ... }`), so parsing any valid VTT with regions silently drops all region definitions and a parse→generate round-trip loses positioning metadata.",
+      "confidence_score": 0.46,
+      "priority": 1,
+      "code_location": {
+        "absolute_file_path": "/mnt/z/Project/UdemyChCaption-Plus/src/utils/webvtt-parser.ts",
+        "line_range": {
+          "start": 333,
+          "end": 348
+        }
+      }
+    }
+  ],
+  "overall_correctness": "patch is incorrect",
+  "overall_explanation": "Region blocks are dropped because the parser expects `id=` instead of the standard `id:` syntax, so WebVTT files with regions cannot be round-tripped correctly.",
+  "overall_confidence_score": 0.46
 }
 ---review-end---

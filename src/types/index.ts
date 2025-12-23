@@ -213,6 +213,97 @@ export interface SubtitleCacheEntry {
 }
 
 // ============================================
+// WebVTT Types
+// ============================================
+
+/**
+ * Represents a parsed WebVTT timestamp
+ * Format: HH:MM:SS.mmm or MM:SS.mmm
+ */
+export interface VTTTimestamp {
+  /** Hours (0-99) */
+  hours: number;
+  /** Minutes (0-59) */
+  minutes: number;
+  /** Seconds (0-59) */
+  seconds: number;
+  /** Milliseconds (0-999) */
+  milliseconds: number;
+}
+
+/**
+ * Represents a single WebVTT cue (subtitle entry)
+ */
+export interface VTTCue {
+  /** Optional cue identifier */
+  id?: string;
+  /** Start timestamp */
+  startTime: VTTTimestamp;
+  /** End timestamp */
+  endTime: VTTTimestamp;
+  /** Text content (may contain VTT formatting tags) */
+  text: string;
+  /** Optional cue settings (position, alignment, etc.) */
+  settings?: string;
+}
+
+/**
+ * Represents a parsed WebVTT file
+ */
+export interface VTTFile {
+  /** Optional header text (after WEBVTT marker) */
+  header?: string;
+  /** Optional style blocks */
+  styles?: string[];
+  /** Optional region definitions */
+  regions?: VTTRegion[];
+  /** Array of subtitle cues */
+  cues: VTTCue[];
+  /** Optional notes (comments) */
+  notes?: string[];
+}
+
+/**
+ * Represents a WebVTT region definition
+ */
+export interface VTTRegion {
+  /** Region identifier */
+  id: string;
+  /** Region settings */
+  settings: string;
+}
+
+/**
+ * Result of WebVTT parsing operation
+ */
+export interface VTTParseResult {
+  /** Whether parsing succeeded */
+  success: boolean;
+  /** Parsed VTT file structure */
+  data?: VTTFile;
+  /** Error message if parsing failed */
+  error?: string;
+  /** Warnings encountered during parsing */
+  warnings?: string[];
+}
+
+/**
+ * Options for WebVTT generation
+ */
+export interface VTTGeneratorOptions {
+  /** Include cue IDs in output (default: true if present) */
+  includeCueIds?: boolean;
+  /** Include style blocks in output (default: true) */
+  includeStyles?: boolean;
+  /** Include region definitions in output (default: true) */
+  includeRegions?: boolean;
+  /** Include notes/comments in output (default: false) */
+  includeNotes?: boolean;
+  /** Use short timestamp format (MM:SS.mmm) when hours is 0 (default: false) */
+  useShortTimestamp?: boolean;
+}
+
+// ============================================
 // Utility Types
 // ============================================
 
