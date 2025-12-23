@@ -546,7 +546,8 @@
       ],
       "lane": "now",
       "priority_suggested": "P1",
-      "status": "todo",
+      "status": "completed",
+      "status_note": "Popup 设置面板实现完成！包含翻译服务选择、API Key 输入验证、模型选择、主开关、高级设置等完整功能。Settings Manager 模块提供统一的配置管理接口。34 个单元测试全部通过。",
       "dependencies": [
         "T-20251223-act-004-design-architecture"
       ],
@@ -561,22 +562,79 @@
       "artifacts": [
         "src/popup/popup.html",
         "src/popup/popup.ts",
-        "src/popup/popup.css"
+        "src/popup/popup.css",
+        "src/storage/settings-manager.ts",
+        "src/storage/__tests__/settings-manager.test.ts",
+        "Compact/Compact-T-20251223-act-009-build-popup-settings-2025-12-23-T181906Z.md"
       ],
       "citations": [
         "EVID-001",
         "EVID-005"
       ],
       "created_at": "2025-12-23T12:00:00Z",
-      "updated_at": "2025-12-23T12:00:00Z",
-      "owner": "tbd",
+      "updated_at": "2025-12-23T23:30:00Z",
+      "completed_at": "2025-12-23T23:30:00Z",
+      "owner": "claude-code",
       "tags": [
         "seed:ACT-009",
         "build",
         "FR-04",
         "FR-05",
         "ui"
-      ]
+      ],
+      "completion_summary": {
+        "deliverables": [
+          "src/popup/popup.html - 设置面板 UI (130 行)",
+          "src/popup/popup.css - 样式表 (350 行)",
+          "src/popup/popup.ts - 逻辑与 API 验证 (400 行)",
+          "src/storage/settings-manager.ts - 配置管理模块 (300 行)",
+          "src/storage/__tests__/settings-manager.test.ts - 单元测试 (34 个测试用例)"
+        ],
+        "key_features": {
+          "ui_components": [
+            "翻译服务选择 (OpenAI / Gemini) - 下拉选择",
+            "API Key 输入 - 密码类型，支持显示/隐藏切换",
+            "模型选择 - 根据服务商动态更新选项",
+            "保存并验证按钮 - 调用 API 测试连通性",
+            "字幕替换主开关 - Toggle Switch",
+            "高级设置 - 自动翻译、预加载、费用估算、进度显示"
+          ],
+          "api_validation": [
+            "OpenAI: 调用 /v1/models 验证 API Key",
+            "Gemini: 调用 /v1beta/models 验证 API Key",
+            "格式校验: OpenAI Key 必须以 sk- 开头",
+            "错误处理: 401/429 等状态码友好提示"
+          ],
+          "settings_manager": [
+            "loadSettings() - 加载配置",
+            "saveSettings() - 保存配置",
+            "resetSettings() - 重置为默认值",
+            "onSettingsChange() - 配置变更监听",
+            "isConfigured() / isEnabled() - 状态检查",
+            "getModelInfo() / estimateCost() - 费用估算"
+          ]
+        },
+        "provider_models": {
+          "openai": ["gpt-4o", "gpt-4o-mini", "gpt-4-turbo", "gpt-4", "gpt-3.5-turbo"],
+          "gemini": ["gemini-2.0-flash-exp", "gemini-1.5-pro", "gemini-1.5-flash", "gemini-1.5-flash-8b"]
+        },
+        "storage": "chrome.storage.sync (带 localStorage 降级)",
+        "test_coverage": {
+          "total_tests": 34,
+          "categories": [
+            "DEFAULT_SETTINGS 验证 (3 tests)",
+            "PROVIDER_MODELS 验证 (3 tests)",
+            "loadSettings/saveSettings (6 tests)",
+            "配置工具函数 (9 tests)",
+            "SettingsManager 类 (7 tests)"
+          ]
+        },
+        "next_steps": [
+          "与 Service Worker 消息桥接集成",
+          "集成到 manifest.json 作为 popup",
+          "与 Content Script 通信传递配置变更"
+        ]
+      }
     },
     "T-20251223-act-010-build-local-cache": {
       "execution_order": 8,

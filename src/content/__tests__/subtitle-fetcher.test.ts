@@ -79,8 +79,8 @@ const createMockVideo = (options: {
 
   // Mock getBoundingClientRect
   video.getBoundingClientRect = jest.fn().mockReturnValue({
-    width: options.width || 1280,
-    height: options.height || 720,
+    width: options.width !== undefined ? options.width : 1280,
+    height: options.height !== undefined ? options.height : 720,
   });
 
   // Add track elements

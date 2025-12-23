@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Udemy 字幕增强</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="popup-container">
+    <!-- Header -->
+    <header class="header">
+      <h1 class="title">Udemy 字幕增强</h1>
+      <div class="main-toggle">
+        <label class="toggle-label" for="enabled">
+          <span>字幕替换</span>
+          <div class="toggle-switch">
+            <input type="checkbox" id="enabled" class="toggle-input">
+            <span class="toggle-slider"></span>
+          </div>
+        </label>
+      </div>
+    </header>
+
+    <!-- Status Message -->
+    <div id="status-message" class="status-message hidden"></div>
+
+    <!-- Settings Form -->
+    <form id="settings-form" class="settings-form">
+      <!-- Provider Selection -->
+      <div class="form-group">
+        <label class="form-label" for="provider">翻译服务</label>
+        <select id="provider" class="form-select" required>
+          <option value="openai">OpenAI</option>
+          <option value="gemini">Google Gemini</option>
+        </select>
+      </div>
+
+      <!-- API Key Input -->
+      <div class="form-group">
+        <label class="form-label" for="apiKey">API Key</label>
+        <div class="input-with-toggle">
+          <input
+            type="password"
+            id="apiKey"
+            class="form-input"
+            placeholder="输入您的 API Key"
+            autocomplete="off"
+            required
+          >
+          <button type="button" id="toggle-apikey-visibility" class="visibility-toggle" title="显示/隐藏">
+            <svg class="eye-icon" viewBox="0 0 24 24" width="20" height="20">
+              <path id="eye-path" d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/>
+            </svg>
+          </button>
+        </div>
+        <p class="form-hint">API Key 仅存储在本地，不会上传至任何服务器</p>
+      </div>
+
+      <!-- Model Selection -->
+      <div class="form-group">
+        <label class="form-label" for="model">模型</label>
+        <select id="model" class="form-select" required>
+          <!-- Options will be populated by JavaScript based on provider -->
+        </select>
+      </div>
+
+      <!-- Validate & Save Button -->
+      <div class="form-actions">
+        <button type="submit" id="save-btn" class="btn btn-primary">
+          <span class="btn-text">保存并验证</span>
+          <span class="btn-loading hidden">
+            <span class="spinner"></span>
+            验证中...
+          </span>
+        </button>
+      </div>
+
+      <!-- Validation Result -->
+      <div id="validation-result" class="validation-result hidden">
+        <div class="validation-icon"></div>
+        <span class="validation-text"></span>
+      </div>
+    </form>
+
+    <!-- Divider -->
+    <hr class="divider">
+
+    <!-- Additional Settings -->
+    <div class="additional-settings">
+      <h2 class="section-title">高级设置</h2>
+
+      <!-- Auto Translate -->
+      <label class="checkbox-label">
+        <input type="checkbox" id="autoTranslate" class="checkbox-input">
+        <span class="checkbox-custom"></span>
+        <span class="checkbox-text">自动翻译字幕</span>
+      </label>
+
+      <!-- Preload Next -->
+      <label class="checkbox-label">
+        <input type="checkbox" id="preloadEnabled" class="checkbox-input">
+        <span class="checkbox-custom"></span>
+        <span class="checkbox-text">预加载下一课字幕</span>
+      </label>
+
+      <!-- Show Cost Estimate -->
+      <label class="checkbox-label">
+        <input type="checkbox" id="showCostEstimate" class="checkbox-input">
+        <span class="checkbox-custom"></span>
+        <span class="checkbox-text">显示费用估算</span>
+      </label>
+
+      <!-- Show Loading Indicator -->
+      <label class="checkbox-label">
+        <input type="checkbox" id="showLoadingIndicator" class="checkbox-input">
+        <span class="checkbox-custom"></span>
+        <span class="checkbox-text">显示翻译进度</span>
+      </label>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <span class="version">v1.0.0</span>
+    </footer>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
