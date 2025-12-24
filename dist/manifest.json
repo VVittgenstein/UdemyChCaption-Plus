@@ -10,10 +10,9 @@
     "128": "icons/icon128.png"
   },
   "permissions": ["storage", "activeTab"],
-  "host_permissions": ["*://*.udemy.com/*"],
+  "host_permissions": ["*://*.udemy.com/*", "*://*.udemycdn.com/*"],
   "background": {
-    "service_worker": "background/service-worker.js",
-    "type": "module"
+    "service_worker": "background/service-worker.js"
   },
   "action": {
     "default_icon": {
@@ -33,7 +32,7 @@
   ],
   "web_accessible_resources": [
     {
-      "resources": ["content/*.js", "storage/*.js"],
+      "resources": ["content/*.js"],
       "matches": ["*://*.udemy.com/*"]
     }
   ]

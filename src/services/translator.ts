@@ -42,8 +42,6 @@ export interface TranslationOptions {
   timeout?: number;
   /** Maximum retry attempts (default: 2) */
   maxRetries?: number;
-  /** Temperature (default: 0.3) */
-  temperature?: number;
   /** Abort signal for cancellation */
   signal?: AbortSignal;
   /** Max duration per batch in milliseconds (default: 600000 = 10 minutes) */
@@ -113,7 +111,6 @@ interface ValidationResult {
 const LOG_PREFIX = '[Translator]';
 const DEFAULT_TIMEOUT = 120000; // 120 seconds for longer content
 const DEFAULT_MAX_RETRIES = 2;
-const DEFAULT_TEMPERATURE = 0.3;
 const DEFAULT_MAX_BATCH_DURATION_MS = 10 * 60 * 1000; // 10 minutes
 
 export { calculateCost } from '../utils/cost-estimator';
@@ -394,7 +391,6 @@ export async function translateVTT(
     courseContext,
     timeout = DEFAULT_TIMEOUT,
     maxRetries = DEFAULT_MAX_RETRIES,
-    temperature = DEFAULT_TEMPERATURE,
     maxBatchDurationMs = DEFAULT_MAX_BATCH_DURATION_MS,
     signal,
     onProgress,
@@ -468,7 +464,6 @@ export async function translateVTT(
       provider,
       apiKey,
       model,
-      temperature,
       timeout,
       maxRetries,
       signal
@@ -528,7 +523,6 @@ async function translateBatchWithRetry(
   provider: 'openai' | 'gemini',
   apiKey: string,
   model: string,
-  temperature: number,
   timeout: number,
   maxRetries: number,
   signal?: AbortSignal
@@ -564,7 +558,6 @@ async function translateBatchWithRetry(
       model,
       systemPrompt,
       userPrompt,
-      temperature,
       timeout,
       signal
     );
@@ -621,6 +614,7 @@ async function translateBatchWithRetry(
 
 /**
  * Call LLM API (OpenAI or Gemini)
+ * Simple: just send messages and get response, like a ChatGPT conversation
  */
 async function callLLM(
   provider: 'openai' | 'gemini',
@@ -628,7 +622,6 @@ async function callLLM(
   model: string,
   systemPrompt: string,
   userPrompt: string,
-  temperature: number,
   timeout: number,
   signal?: AbortSignal
 ): Promise<{
@@ -649,7 +642,6 @@ async function callLLM(
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userPrompt },
       ],
-      temperature,
       timeout,
       signal,
     });
@@ -665,7 +657,6 @@ async function callLLM(
       model,
       systemInstruction,
       contents,
-      temperature,
       timeout,
       signal,
     });

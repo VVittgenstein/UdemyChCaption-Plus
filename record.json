@@ -1693,8 +1693,8 @@
       ],
       "lane": "next",
       "priority_suggested": "P0",
-      "status": "pending",
-      "status_note": "已解除阻塞：manifest.json 与扩展图标已就绪，待开始真实环境验证。",
+      "status": "completed",
+      "status_note": "修复ES Module打包问题：(1)使用esbuild打包为IIFE格式单文件，解决Service Worker无效问题 (2)移除export语句，解决模型下拉菜单为空问题。请重新加载扩展验证。",
       "dependencies": [
         "T-20251223-act-017-build-manifest",
         "T-20251223-act-018-build-icons"
@@ -1707,11 +1707,14 @@
         "all"
       ],
       "artifacts": [
-        "docs/e2e-validation-report.md"
+        "docs/e2e-validation-report.md",
+        "scripts/build.js",
+        "manifest.json",
+        "Compact/Compact-T-20251223-act-019-e2e-validation-2025-12-24-T232928Z.md"
       ],
       "citations": [],
       "created_at": "2025-12-24T22:00:00Z",
-      "updated_at": "2025-12-24T15:22:20Z",
+      "updated_at": "2025-12-24T23:29:28Z",
       "owner": "claude-code",
       "tags": [
         "seed:ACT-019",
@@ -1740,21 +1743,14 @@
       "lane": "later",
       "priority_suggested": "P2",
       "status": "pending",
-      "status_note": "E2E 验证通过后执行",
+      "status_note": "E2E 验证已完成，可开始执行",
       "dependencies": [
         "T-20251223-act-019-e2e-validation",
         "T-20251223-act-014-doc-privacy-policy"
       ],
-      "blocked": true,
-      "blocked_by": [
-        {
-          "dep_id": "ACT-019",
-          "name": "E2E 验证",
-          "type": "task",
-          "status": "pending"
-        }
-      ],
-      "unblock_plan": "E2E 验证通过后解除阻塞",
+      "blocked": false,
+      "blocked_by": [],
+      "unblock_plan": "",
       "estimate_h": 4,
       "interfaces_touched": [
         "docs",

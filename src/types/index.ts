@@ -35,7 +35,7 @@ export interface SubtitleFetchResult {
   /** Error message if failed */
   error?: string;
   /** Fetch method used */
-  method: 'track-element' | 'videojs-api' | 'network-intercept' | 'none';
+  method: 'track-element' | 'videojs-api' | 'udemy-api' | 'network-intercept' | 'none';
 }
 
 /**

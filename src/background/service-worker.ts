@@ -248,6 +248,54 @@ function handleCancel(taskId: string | undefined): void {
   activeControllers.delete(taskId);
 }
 
+/** VTT fetch timeout (ms) */
+const VTT_FETCH_TIMEOUT = 10000;
+
+/**
+ * Handle FETCH_VTT message from content script
+ * Background script can bypass CORS restrictions with proper host_permissions
+ * Note: Uses Promise chains instead of async/await to ensure sendResponse works correctly
+ */
+function handleFetchVTT(
+  payload: { url: string },
+  sendResponse: (response: { ok: boolean; content?: string; error?: string }) => void
+): void {
+  const url = payload?.url;
+
+  if (!url) {
+    sendResponse({ ok: false, error: 'No URL provided' });
+    return;
+  }
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), VTT_FETCH_TIMEOUT);
+
+  fetch(url, {
+    method: 'GET',
+    credentials: 'include',
+    signal: controller.signal,
+  })
+    .then((response) => {
+      clearTimeout(timeoutId);
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      return response.text();
+    })
+    .then((content) => {
+      sendResponse({ ok: true, content });
+    })
+    .catch((e) => {
+      clearTimeout(timeoutId);
+      const error = e instanceof Error ? e.message : 'Unknown error';
+      if (error.includes('aborted')) {
+        sendResponse({ ok: false, error: 'Request timeout' });
+        return;
+      }
+      sendResponse({ ok: false, error });
+    });
+}
+
 async function handlePreloadNext(sender: chrome.runtime.MessageSender, payload: any): Promise<void> {
   const tabId = sender.tab?.id;
   if (!tabId) return;
@@ -322,6 +370,11 @@ function initMessageHandler(): void {
       handleCancel(message.payload?.taskId);
       sendResponse?.({ ok: true });
       return;
+    }
+
+    if (message.type === 'FETCH_VTT') {
+      handleFetchVTT(message.payload, sendResponse);
+      return true;
     }
 
     return;

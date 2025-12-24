@@ -46,8 +46,6 @@ export interface GeminiRequestOptions {
   systemInstruction?: string;
   /** Conversation contents */
   contents: GeminiContent[];
-  /** Temperature (0-2, default 0.3 for translation) */
-  temperature?: number;
   /** Maximum tokens in response */
   maxOutputTokens?: number;
   /** Request timeout in milliseconds (default 60000) */
@@ -190,7 +188,6 @@ export async function generateContent(options: GeminiRequestOptions): Promise<Ge
     model,
     systemInstruction,
     contents,
-    temperature = 0.3,
     maxOutputTokens,
     timeout = DEFAULT_TIMEOUT,
     stream = true,
@@ -210,13 +207,12 @@ export async function generateContent(options: GeminiRequestOptions): Promise<Ge
     return { success: false, error: 'Contents are required', errorCode: 'MISSING_CONTENTS' };
   }
 
-  // Build request body
+  // Build request body - simple, like a ChatGPT conversation
   const requestBody: Record<string, unknown> = {
     contents,
-    generationConfig: {
-      temperature,
-      ...(maxOutputTokens && { maxOutputTokens }),
-    },
+    ...(maxOutputTokens && {
+      generationConfig: { maxOutputTokens },
+    }),
   };
 
   // Add system instruction if provided

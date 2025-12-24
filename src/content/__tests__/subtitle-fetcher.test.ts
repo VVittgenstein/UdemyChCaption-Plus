@@ -13,6 +13,7 @@
 
 import {
   extractCourseInfo,
+  getSubtitleTracks,
   selectPreferredTrack,
   fetchVTT,
   SubtitleFetcher,
@@ -185,6 +186,42 @@ describe('extractCourseInfo', () => {
     expect(info).not.toBeNull();
     expect(info?.courseSlug).toBe('my-course');
     expect(info?.lectureId).toBe('99999');
+  });
+});
+
+// ============================================
+// Tests: Subtitle Track Extraction
+// ============================================
+
+describe('getSubtitleTracks (network intercept)', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  test('ignores Udemy API URLs that only mention captions in query params', async () => {
+    mockLocation('https://www.udemy.com/course/test-course/learn/lecture/12345');
+    mockDocument();
+
+    const video = createMockVideo({ src: 'https://example.com/video.mp4' });
+
+    mockPerformanceEntries([
+      {
+        name: 'https://www.udemy.com/api-2.0/courses/5059176/?fields[course]=has_closed_caption,is_saved',
+      },
+      {
+        name: 'https://example.com/subtitles_en.vtt',
+      },
+      {
+        name: 'https://example.com/app.js',
+      },
+    ]);
+
+    const result = await getSubtitleTracks(video);
+
+    expect(result.success).toBe(true);
+    expect(result.method).toBe('network-intercept');
+    expect(result.tracks.map((t) => t.url)).toEqual(['https://example.com/subtitles_en.vtt']);
+    expect(result.tracks[0].language).toBe('en');
   });
 });
 

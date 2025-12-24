@@ -37,8 +37,6 @@ export interface OpenAIRequestOptions {
   model: string;
   /** Messages for the conversation */
   messages: OpenAIMessage[];
-  /** Temperature (0-2, default 0.3 for translation) */
-  temperature?: number;
   /** Maximum tokens in response */
   maxTokens?: number;
   /** Request timeout in milliseconds (default 60000) */
@@ -189,7 +187,6 @@ export async function chatCompletion(options: OpenAIRequestOptions): Promise<Ope
     apiKey,
     model,
     messages,
-    temperature = 0.3,
     maxTokens,
     timeout = DEFAULT_TIMEOUT,
     stream = true,
@@ -209,11 +206,10 @@ export async function chatCompletion(options: OpenAIRequestOptions): Promise<Ope
     return { success: false, error: 'Messages are required', errorCode: 'MISSING_MESSAGES' };
   }
 
-  // Build request body
+  // Build request body - simple, like a ChatGPT conversation
   const requestBody: Record<string, unknown> = {
     model,
     messages,
-    temperature,
     stream,
     stream_options: stream ? { include_usage: true } : undefined,
   };
@@ -228,7 +224,7 @@ export async function chatCompletion(options: OpenAIRequestOptions): Promise<Ope
 
   // Combine with external signal if provided
   if (signal) {
-    signal.addEventListener('abort', () => controller.abort());
+    signal.addEventListener('abort', () => controller.abort(), { once: true });
   }
 
   // Start keepalive for long-running requests
@@ -246,8 +242,6 @@ export async function chatCompletion(options: OpenAIRequestOptions): Promise<Ope
       body: JSON.stringify(requestBody),
       signal: controller.signal,
     });
-
-    clearTimeout(timeoutId);
 
     // Handle HTTP errors
     if (!response.ok) {
@@ -299,8 +293,6 @@ export async function chatCompletion(options: OpenAIRequestOptions): Promise<Ope
       finishReason: data.choices?.[0]?.finish_reason,
     };
   } catch (error) {
-    clearTimeout(timeoutId);
-
     if (error instanceof Error) {
       if (error.name === 'AbortError') {
         log('warn', 'Request aborted or timed out');
@@ -313,6 +305,7 @@ export async function chatCompletion(options: OpenAIRequestOptions): Promise<Ope
 
     return { success: false, error: 'Unknown error occurred', errorCode: 'UNKNOWN_ERROR' };
   } finally {
+    clearTimeout(timeoutId);
     stopKeepalive();
   }
 }
@@ -407,10 +400,26 @@ async function handleStreamingResponse(
       finishReason,
     };
   } catch (error) {
-    log('error', 'Streaming error:', error);
+    if (error instanceof Error && error.name === 'AbortError') {
+      log('warn', 'Streaming aborted or timed out');
+      return { success: false, error: 'Request timed out or was cancelled', errorCode: 'TIMEOUT' };
+    }
+
+    const message = error instanceof Error ? error.message : String(error);
+    const normalized = message.toLowerCase();
+    if (normalized.includes('network error')) {
+      log('warn', 'Streaming network error:', error);
+      return {
+        success: false,
+        error: 'Network error while streaming response (check VPN/firewall or blocking extensions)',
+        errorCode: 'NETWORK_ERROR',
+      };
+    }
+
+    log('warn', 'Streaming error:', error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Streaming failed',
+      error: message || 'Streaming failed',
       errorCode: 'STREAMING_ERROR',
     };
   } finally {

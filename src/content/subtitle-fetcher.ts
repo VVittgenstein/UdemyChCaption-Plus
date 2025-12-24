@@ -37,9 +37,6 @@ const VIDEO_DETECTION_POLL_INTERVAL = 100;
 /** Preferred language priority for subtitle selection */
 const LANGUAGE_PRIORITY = ['en', 'en-US', 'en-GB', 'en-AU'];
 
-/** VTT file fetch timeout (ms) */
-const VTT_FETCH_TIMEOUT = 10000;
-
 // ============================================
 // Logger Utility
 // ============================================
@@ -282,7 +279,8 @@ function isValidVideoElement(video: HTMLVideoElement): boolean {
  * Get subtitle tracks from video element
  */
 export async function getSubtitleTracks(
-  video: HTMLVideoElement
+  video: HTMLVideoElement,
+  courseInfo?: CourseInfo | null
 ): Promise<SubtitleFetchResult> {
   log('info', 'Extracting subtitle tracks...');
 
@@ -318,7 +316,19 @@ export async function getSubtitleTracks(
     log('debug', `TextTrack API found ${textTracks.length} tracks but none have URLs, trying network intercept`);
   }
 
-  // Method 3: Intercept network requests for VTT files
+  // Method 3: Udemy Captions API (preferred over network intercept)
+  if (courseInfo?.lectureId) {
+    const apiTracks = await getTracksFromCaptionsAPI(courseInfo);
+    if (apiTracks.length > 0) {
+      result.tracks = apiTracks;
+      result.method = 'udemy-api';
+      result.success = true;
+      log('info', `Found ${apiTracks.length} tracks from Udemy captions API`);
+      return result;
+    }
+  }
+
+  // Method 4: Intercept network requests for VTT files (fallback)
   const networkTracks = await getTracksFromNetworkIntercept();
   if (networkTracks.length > 0) {
     result.tracks = networkTracks;
@@ -384,6 +394,213 @@ function getTracksFromTextTrackAPI(video: HTMLVideoElement): SubtitleTrack[] {
   return tracks;
 }
 
+function isLikelyThumbnailSpriteVttUrl(url: URL): boolean {
+  const path = url.pathname.toLowerCase();
+  if (path.includes('thumb-sprites')) return true;
+  if (path.includes('thumb_sprites')) return true;
+  if (path.includes('storyboard')) return true;
+  if (path.includes('thumbnail')) return true;
+  return false;
+}
+
+function normalizeLocale(locale: string): string {
+  const normalized = locale.trim().replace(/_/g, '-');
+  const [language, region, ...rest] = normalized.split('-').filter(Boolean);
+  if (!language) return normalized;
+  if (!region) return language.toLowerCase();
+  const suffix = rest.length > 0 ? `-${rest.join('-')}` : '';
+  return `${language.toLowerCase()}-${region.toUpperCase()}${suffix}`;
+}
+
+function toStringIfPresent(value: unknown): string | null {
+  if (typeof value === 'string' && value.trim() !== '') return value.trim();
+  if (typeof value === 'number' && Number.isFinite(value)) return String(value);
+  return null;
+}
+
+function inferLanguageFromUrl(url: string): string {
+  const match =
+    url.match(/[_-]([a-z]{2}(?:-[A-Z]{2})?)[_.]/) ||
+    url.match(/lang[=_]([a-z]{2}(?:-[A-Z]{2})?)/i) ||
+    url.match(/locale[=_]([a-z]{2}(?:[_-][A-Z]{2})?)/i);
+  if (!match?.[1]) return 'unknown';
+  return normalizeLocale(match[1]);
+}
+
+function asAbsoluteUrl(raw: string): string {
+  try {
+    return new URL(raw).toString();
+  } catch {
+    return new URL(raw, 'https://www.udemy.com').toString();
+  }
+}
+
+function dedupeTracks(tracks: SubtitleTrack[]): SubtitleTrack[] {
+  const seen = new Set<string>();
+  const result: SubtitleTrack[] = [];
+  for (const track of tracks) {
+    if (!track.url) continue;
+    const normalized = asAbsoluteUrl(track.url);
+    if (seen.has(normalized)) continue;
+    seen.add(normalized);
+    result.push({ ...track, url: normalized });
+  }
+  return result;
+}
+
+function extractTracksFromCaptionArray(items: unknown[]): SubtitleTrack[] {
+  const tracks: SubtitleTrack[] = [];
+
+  for (const item of items) {
+    if (!item || typeof item !== 'object') continue;
+    const obj = item as Record<string, unknown>;
+
+    const url =
+      toStringIfPresent(obj.url) ||
+      toStringIfPresent(obj.download_url) ||
+      toStringIfPresent(obj.downloadUrl) ||
+      toStringIfPresent(obj.vtt_url) ||
+      toStringIfPresent(obj.vttUrl) ||
+      toStringIfPresent(obj.file) ||
+      null;
+    if (!url) continue;
+
+    const parsed = tryParseUrl(url);
+    if (parsed && isLikelyThumbnailSpriteVttUrl(parsed)) continue;
+
+    // Only keep VTT-like URLs
+    if (parsed && !looksLikeVttResource(parsed)) continue;
+    if (!parsed && !url.includes('.vtt')) continue;
+
+    const languageRaw =
+      toStringIfPresent(obj.language) ||
+      toStringIfPresent(obj.locale) ||
+      toStringIfPresent(obj.srclang) ||
+      toStringIfPresent(obj.language_code) ||
+      toStringIfPresent(obj.lang) ||
+      null;
+    const language = languageRaw ? normalizeLocale(languageRaw) : inferLanguageFromUrl(url);
+
+    const label =
+      toStringIfPresent(obj.label) ||
+      toStringIfPresent(obj.display_title) ||
+      toStringIfPresent(obj.title) ||
+      (language.toLowerCase().startsWith('en') ? 'English' : language || 'Unknown');
+
+    const isDefault =
+      (typeof obj.is_default === 'boolean' && obj.is_default) ||
+      (typeof obj.default === 'boolean' && obj.default) ||
+      language.toLowerCase() === 'en';
+
+    tracks.push({ url, language, label, isDefault, kind: 'subtitles' });
+  }
+
+  return tracks;
+}
+
+function collectVttUrlsRecursively(data: unknown, maxNodes: number = 2000): SubtitleTrack[] {
+  const tracks: SubtitleTrack[] = [];
+  const visited = new Set<unknown>();
+  const queue: unknown[] = [data];
+  let visitedCount = 0;
+
+  while (queue.length > 0 && visitedCount < maxNodes) {
+    const node = queue.shift();
+    if (!node || typeof node !== 'object') continue;
+    if (visited.has(node)) continue;
+    visited.add(node);
+    visitedCount++;
+
+    if (Array.isArray(node)) {
+      for (const item of node) queue.push(item);
+      continue;
+    }
+
+    const obj = node as Record<string, unknown>;
+    const keys = Object.keys(obj);
+    for (const key of keys) {
+      const value = obj[key];
+      if (typeof value === 'string') {
+        const parsed = tryParseUrl(value);
+        if (!parsed) continue;
+        if (isLikelyThumbnailSpriteVttUrl(parsed)) continue;
+        if (!looksLikeVttResource(parsed)) continue;
+
+        const languageRaw =
+          toStringIfPresent(obj.language) ||
+          toStringIfPresent(obj.locale) ||
+          toStringIfPresent(obj.srclang) ||
+          toStringIfPresent(obj.language_code) ||
+          toStringIfPresent(obj.lang) ||
+          null;
+        const language = languageRaw ? normalizeLocale(languageRaw) : inferLanguageFromUrl(value);
+        const label = language.toLowerCase().startsWith('en') ? 'English' : language || 'Unknown';
+        tracks.push({ url: value, language, label, isDefault: language.toLowerCase() === 'en', kind: 'subtitles' });
+      } else if (value && typeof value === 'object') {
+        queue.push(value);
+      }
+    }
+  }
+
+  return tracks;
+}
+
+function extractCaptionTracks(data: unknown): SubtitleTrack[] {
+  const tracks: SubtitleTrack[] = [];
+  const root = data as any;
+
+  const arrays: unknown[][] = [];
+  if (Array.isArray(root?.asset?.captions)) arrays.push(root.asset.captions);
+  if (Array.isArray(root?.asset?.caption_tracks)) arrays.push(root.asset.caption_tracks);
+  if (Array.isArray(root?.captions)) arrays.push(root.captions);
+  if (Array.isArray(root?.results)) arrays.push(root.results);
+
+  for (const arr of arrays) tracks.push(...extractTracksFromCaptionArray(arr));
+  tracks.push(...collectVttUrlsRecursively(data));
+
+  return dedupeTracks(tracks);
+}
+
+async function fetchJson(url: string): Promise<unknown> {
+  const response = await fetch(url, { credentials: 'include' });
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status} for ${url}`);
+  }
+  return response.json();
+}
+
+async function getTracksFromCaptionsAPI(courseInfo: CourseInfo): Promise<SubtitleTrack[]> {
+  const lectureId = courseInfo.lectureId;
+  if (!lectureId) return [];
+
+  const attempts: string[] = [
+    `https://www.udemy.com/api-2.0/lectures/${encodeURIComponent(lectureId)}/captions/`,
+    `https://www.udemy.com/api-2.0/lectures/${encodeURIComponent(lectureId)}/?fields[lecture]=asset&fields[asset]=captions`,
+  ];
+
+  // Some endpoints require numeric course id, but courseInfo.courseId might be missing/slug.
+  if (courseInfo.courseId && /^\d+$/.test(courseInfo.courseId)) {
+    attempts.unshift(
+      `https://www.udemy.com/api-2.0/users/me/subscribed-courses/${encodeURIComponent(courseInfo.courseId)}/lectures/${encodeURIComponent(lectureId)}/?fields[lecture]=asset&fields[asset]=captions`
+    );
+  }
+
+  let lastError: unknown = null;
+  for (const url of attempts) {
+    try {
+      const data = await fetchJson(url);
+      const tracks = extractCaptionTracks(data);
+      if (tracks.length > 0) return tracks;
+      lastError = new Error('No caption tracks found');
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  log('debug', 'Captions API lookup failed:', lastError);
+  return [];
+}
+
 /**
  * Try to get subtitle URLs from intercepted network requests
  */
@@ -395,20 +612,31 @@ async function getTracksFromNetworkIntercept(): Promise<SubtitleTrack[]> {
     const entries = performance.getEntriesByType('resource') as PerformanceResourceTiming[];
 
     for (const entry of entries) {
-      if (entry.name.includes('.vtt') || entry.name.includes('caption')) {
-        // Try to extract language from URL
-        const langMatch = entry.name.match(/[_-]([a-z]{2}(?:-[A-Z]{2})?)[_.]/) ||
-                         entry.name.match(/lang[=_]([a-z]{2}(?:-[A-Z]{2})?)/i);
-        const language = langMatch ? langMatch[1] : 'en';
+      const parsed = tryParseUrl(entry.name);
+      if (!parsed) continue;
 
-        tracks.push({
-          url: entry.name,
-          language,
-          label: language === 'en' ? 'English' : language,
-          isDefault: language === 'en',
-          kind: 'subtitles',
-        });
-      }
+      if (isLikelyThumbnailSpriteVttUrl(parsed)) continue;
+      if (!looksLikeVttResource(parsed)) continue;
+
+      // Try to extract language from URL
+      const langMatch =
+        entry.name.match(/[_-]([a-z]{2}(?:-[A-Z]{2})?)[_.]/) ||
+        entry.name.match(/lang[=_]([a-z]{2}(?:-[A-Z]{2})?)/i) ||
+        entry.name.match(/locale[=_]([a-z]{2}(?:[_-][A-Z]{2})?)/i);
+      const language = langMatch ? langMatch[1].replace(/_/g, '-') : 'unknown';
+
+      tracks.push({
+        url: entry.name,
+        language,
+        label:
+          language.toLowerCase().startsWith('en')
+            ? 'English'
+            : language === 'unknown'
+              ? 'Unknown'
+              : language,
+        isDefault: language.toLowerCase() === 'en',
+        kind: 'subtitles',
+      });
     }
 
     // Deduplicate by URL
@@ -422,6 +650,46 @@ async function getTracksFromNetworkIntercept(): Promise<SubtitleTrack[]> {
     log('debug', 'Network intercept failed:', e);
     return [];
   }
+}
+
+function tryParseUrl(raw: string): URL | null {
+  try {
+    return new URL(raw);
+  } catch {
+    try {
+      return new URL(raw, 'https://www.udemy.com');
+    } catch {
+      return null;
+    }
+  }
+}
+
+function looksLikeVttResource(url: URL): boolean {
+  const pathname = url.pathname.toLowerCase();
+  if (pathname.includes('.vtt')) return true;
+
+  const keys = ['format', 'type', 'fmt', 'ext', 'extension', 'mime'];
+  for (const key of keys) {
+    const value = url.searchParams.get(key);
+    if (!value) continue;
+    const normalized = value.toLowerCase();
+    if (normalized === 'vtt' || normalized === 'text/vtt' || normalized === 'webvtt') return true;
+  }
+
+  return false;
+}
+
+function isLikelyThumbnailSpriteVttContent(content: string): boolean {
+  const sample = content.replace(/^\uFEFF/, '').slice(0, 20000).toLowerCase();
+  const xywhHits = sample.match(/#xywh=/g)?.length ?? 0;
+  if (xywhHits === 0) return false;
+  if (xywhHits >= 3) return true;
+  return (
+    sample.includes('thumb-sprites') ||
+    sample.includes('thumb_sprites') ||
+    sample.includes('storyboard') ||
+    sample.includes('thumbnail')
+  );
 }
 
 /**
@@ -469,7 +737,8 @@ export function selectPreferredTrack(tracks: SubtitleTrack[]): SubtitleTrack | n
 // ============================================
 
 /**
- * Fetch VTT content from URL
+ * Fetch VTT content from URL via background script
+ * Background script can bypass CORS restrictions with proper host_permissions
  */
 export async function fetchVTT(url: string): Promise<AsyncResult<VTTContent>> {
   log('info', `Fetching VTT from: ${url}`);
@@ -482,26 +751,50 @@ export async function fetchVTT(url: string): Promise<AsyncResult<VTTContent>> {
   }
 
   try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), VTT_FETCH_TIMEOUT);
+    let content: string;
 
-    const response = await fetch(url, {
-      method: 'GET',
-      credentials: 'include',
-      signal: controller.signal,
-    });
+    // Use background script to fetch VTT to bypass CORS in extension context.
+    // For unit tests / non-extension environments, fall back to direct fetch().
+    if (typeof chrome !== 'undefined' && !!chrome.runtime?.sendMessage) {
+      const response = await chrome.runtime.sendMessage({
+        type: 'FETCH_VTT',
+        payload: { url },
+      });
 
-    clearTimeout(timeoutId);
+      if (!response?.ok) {
+        const errorMsg = response?.error || 'Failed to fetch VTT';
+        log('error', `VTT fetch failed: ${errorMsg}`);
+        return {
+          success: false,
+          error: errorMsg,
+        };
+      }
 
-    if (!response.ok) {
-      log('error', `VTT fetch failed: ${response.status} ${response.statusText}`);
-      return {
-        success: false,
-        error: `HTTP ${response.status}: ${response.statusText}`,
-      };
+      content = response.content;
+    } else {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+      try {
+        const response = await fetch(url, { credentials: 'include', signal: controller.signal });
+        if (!response.ok) {
+          return {
+            success: false,
+            error: `HTTP ${response.status}: ${response.statusText}`,
+          };
+        }
+        content = await response.text();
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        const isTimeout = message.toLowerCase().includes('aborted');
+        return {
+          success: false,
+          error: isTimeout ? 'Request timeout' : message,
+        };
+      } finally {
+        clearTimeout(timeoutId);
+      }
     }
-
-    const content = await response.text();
 
     // Validate VTT content
     if (!isValidVTT(content)) {
@@ -534,13 +827,6 @@ export async function fetchVTT(url: string): Promise<AsyncResult<VTTContent>> {
   } catch (e) {
     const error = e instanceof Error ? e.message : 'Unknown error';
     log('error', `VTT fetch error: ${error}`);
-
-    if (error.includes('aborted')) {
-      return {
-        success: false,
-        error: 'Request timeout',
-      };
-    }
 
     return {
       success: false,
@@ -601,7 +887,7 @@ export async function fetchSubtitles(): Promise<{
   }
 
   // Step 2: Get subtitle tracks
-  const subtitleResult = await getSubtitleTracks(videoDetection.video);
+  const subtitleResult = await getSubtitleTracks(videoDetection.video, videoDetection.courseInfo);
   if (!subtitleResult.success || subtitleResult.tracks.length === 0) {
     log('warn', 'No subtitle tracks found');
     return {
@@ -613,26 +899,50 @@ export async function fetchSubtitles(): Promise<{
   }
 
   // Step 3: Select preferred track
-  const selectedTrack = selectPreferredTrack(subtitleResult.tracks);
-  if (!selectedTrack || !selectedTrack.url) {
+  const candidateTracks = subtitleResult.tracks.filter((track) => track.url);
+  const preferredTrack = selectPreferredTrack(candidateTracks);
+  if (!preferredTrack || !preferredTrack.url) {
     log('warn', 'No suitable track selected or track has no URL');
     return {
       videoDetection,
       subtitleResult,
       vttContent: null,
-      selectedTrack,
+      selectedTrack: preferredTrack,
     };
   }
 
   // Step 4: Fetch VTT content
-  const vttResult = await fetchVTT(selectedTrack.url);
+  const orderedTracks = [
+    preferredTrack,
+    ...candidateTracks.filter((track) => track.url !== preferredTrack.url),
+  ];
+
+  let selectedTrack: SubtitleTrack | null = null;
+  let vttContent: VTTContent | null = null;
+
+  for (const track of orderedTracks) {
+    const vttResult = await fetchVTT(track.url);
+    if (vttResult.success && vttResult.data) {
+      if (isLikelyThumbnailSpriteVttContent(vttResult.data.content)) {
+        log('warn', `Detected thumbnail sprite VTT, skipping track: ${track.label} (${track.language})`);
+        continue;
+      }
+      selectedTrack = track;
+      vttContent = vttResult.data;
+      break;
+    }
+    log(
+      'warn',
+      `Failed to fetch VTT for track ${track.label} (${track.language}): ${vttResult.error || 'unknown error'}`
+    );
+  }
 
   log('info', '=== Subtitle fetch process complete ===');
 
   return {
     videoDetection,
     subtitleResult,
-    vttContent: vttResult.success ? vttResult.data! : null,
+    vttContent,
     selectedTrack,
   };
 }
@@ -678,7 +988,7 @@ export class SubtitleFetcher {
       return [];
     }
 
-    const result = await getSubtitleTracks(this.video);
+    const result = await getSubtitleTracks(this.video, this.courseInfo);
     this.tracks = result.tracks;
     return this.tracks;
   }
