@@ -8,8 +8,8 @@
  * - Compare with cached entry hash
  * - Decide whether to retranslate (subtitle updated or user forces refresh)
  */
-import { subtitleCache } from '../storage/subtitle-cache';
-import { calculateHash } from '../utils/hash';
+import { subtitleCache } from '../storage/subtitle-cache.js';
+import { calculateHash } from '../utils/hash.js';
 async function resolveOriginalHash(params) {
     if (params.originalHash)
         return params.originalHash;

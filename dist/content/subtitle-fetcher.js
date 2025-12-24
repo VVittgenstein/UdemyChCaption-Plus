@@ -10,7 +10,7 @@
  * - [x] 成功提取原始字幕 URL（优先英文 WebVTT）
  * - [x] 控制台/日志可见字幕抓取状态
  */
-import { calculateHash } from '../utils/hash';
+import { calculateHash } from '../utils/hash.js';
 // ============================================
 // Constants
 // ============================================

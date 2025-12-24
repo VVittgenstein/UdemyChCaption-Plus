@@ -6,13 +6,13 @@
  * - Force retranslation when requested
  * - Send progress + completion updates (for Popup UI)
  */
-import { loadSettings, isEnabled } from '../storage/settings-manager';
-import { subtitleCache } from '../storage/subtitle-cache';
-import { addSessionCost, updateSessionCostState } from '../storage/session-cost';
-import { checkSubtitleVersion } from '../services/version-checker';
-import { estimateTranslationCost, translateVTT } from '../services/translator';
-import { preloadLecture } from '../services/preloader';
-import { calculateHash } from '../utils/hash';
+import { loadSettings, isEnabled } from '../storage/settings-manager.js';
+import { subtitleCache } from '../storage/subtitle-cache.js';
+import { addSessionCost, updateSessionCostState } from '../storage/session-cost.js';
+import { checkSubtitleVersion } from '../services/version-checker.js';
+import { estimateTranslationCost, translateVTT } from '../services/translator.js';
+import { preloadLecture } from '../services/preloader.js';
+import { calculateHash } from '../utils/hash.js';
 const activeControllers = new Map();
 const activePreloadByTab = new Map();
 function sendToTab(tabId, message) {

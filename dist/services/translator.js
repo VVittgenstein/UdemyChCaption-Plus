@@ -14,11 +14,11 @@
  * - Token usage and cost tracking
  * - Timeout handling and retry mechanism
  */
-import { parseVTT, timestampToMs } from '../utils/webvtt-parser';
-import { generateVTT, mergeVTTFiles } from '../utils/webvtt-generator';
-import { calculateCost } from '../utils/cost-estimator';
-import { chatCompletion, estimateTokens as openaiEstimateTokens } from './openai-client';
-import { generateContent, convertFromOpenAIFormat, estimateTokens as geminiEstimateTokens } from './gemini-client';
+import { parseVTT, timestampToMs } from '../utils/webvtt-parser.js';
+import { generateVTT, mergeVTTFiles } from '../utils/webvtt-generator.js';
+import { calculateCost } from '../utils/cost-estimator.js';
+import { chatCompletion, estimateTokens as openaiEstimateTokens } from './openai-client.js';
+import { generateContent, convertFromOpenAIFormat, estimateTokens as geminiEstimateTokens } from './gemini-client.js';
 // ============================================
 // Constants
 // ============================================
@@ -27,7 +27,7 @@ const DEFAULT_TIMEOUT = 120000; // 120 seconds for longer content
 const DEFAULT_MAX_RETRIES = 2;
 const DEFAULT_TEMPERATURE = 0.3;
 const DEFAULT_MAX_BATCH_DURATION_MS = 10 * 60 * 1000; // 10 minutes
-export { calculateCost } from '../utils/cost-estimator';
+export { calculateCost } from '../utils/cost-estimator.js';
 const LOG_LEVELS = {
     debug: 0,
     info: 1,

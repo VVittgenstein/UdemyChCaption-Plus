@@ -1561,8 +1561,8 @@
       ],
       "lane": "now",
       "priority_suggested": "P0",
-      "status": "pending",
-      "status_note": "阻断性任务：缺少此文件扩展无法安装运行",
+      "status": "completed",
+      "status_note": "已创建 dist/manifest.json（Manifest V3）并配置 Service Worker / Content Script / Popup 入口；同时补齐 dist 内 ESM import 的 .js 扩展名，确保 Chrome 可加载模块依赖。",
       "dependencies": [
         "T-20251223-act-004-design-architecture"
       ],
@@ -1575,20 +1575,40 @@
         "chrome-extension"
       ],
       "artifacts": [
-        "manifest.json"
+        "dist/manifest.json",
+        "dist/popup/popup.html",
+        "dist/popup/popup.css"
       ],
       "citations": [
         "EVID-011"
       ],
       "created_at": "2025-12-24T22:00:00Z",
-      "updated_at": "2025-12-24T22:00:00Z",
-      "owner": "claude-code",
+      "updated_at": "2025-12-24T22:47:57Z",
+      "completed_at": "2025-12-24T22:47:57Z",
+      "owner": "codex-cli",
       "tags": [
         "seed:ACT-017",
         "build",
         "blocking",
         "mvp-critical"
-      ]
+      ],
+      "completion_summary": {
+        "deliverables": [
+          "dist/manifest.json - Manifest V3 配置文件",
+          "dist/popup/popup.html - Popup 静态入口（复制自 src/popup/popup.html）",
+          "dist/popup/popup.css - Popup 样式（复制自 src/popup/popup.css）"
+        ],
+        "key_config": {
+          "background": "background/service-worker.js (type=module)",
+          "content_script": "content/content-script.js (matches: *://*.udemy.com/course/*/learn/lecture/*)",
+          "popup": "popup/popup.html",
+          "permissions": ["storage", "activeTab"],
+          "host_permissions": ["*://*.udemy.com/*"]
+        },
+        "notes": [
+          "修正 dist 下 ESM import specifier，统一补全 .js 扩展名以符合浏览器模块加载规则"
+        ]
+      }
     },
     "T-20251223-act-018-build-icons": {
       "execution_order": 18,
@@ -1667,13 +1687,13 @@
       "blocked": true,
       "blocked_by": [
         {
-          "dep_id": "ACT-017",
-          "name": "manifest.json",
+          "dep_id": "ACT-018",
+          "name": "extension icons",
           "type": "task",
           "status": "pending"
         }
       ],
-      "unblock_plan": "完成 manifest.json 后解除阻塞",
+      "unblock_plan": "完成扩展图标后解除阻塞",
       "estimate_h": 3,
       "interfaces_touched": [
         "all"

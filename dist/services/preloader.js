@@ -9,11 +9,11 @@
  * - Store translation into IndexedDB cache
  * - Support cancellation via AbortSignal
  */
-import { loadSettings, isEnabled } from '../storage/settings-manager';
-import { subtitleCache } from '../storage/subtitle-cache';
-import { addSessionCost, updateSessionCostState } from '../storage/session-cost';
-import { checkSubtitleVersion } from './version-checker';
-import { translateVTT } from './translator';
+import { loadSettings, isEnabled } from '../storage/settings-manager.js';
+import { subtitleCache } from '../storage/subtitle-cache.js';
+import { addSessionCost, updateSessionCostState } from '../storage/session-cost.js';
+import { checkSubtitleVersion } from './version-checker.js';
+import { translateVTT } from './translator.js';
 const LOG_PREFIX = '[UdemyCaptionPlus][Preloader]';
 const LANGUAGE_PRIORITY = ['en', 'en-US', 'en-GB', 'en-AU'];
 function log(...args) {

@@ -12,12 +12,12 @@
  * - Show loading indicator during translation
  * - Show success/error indicators on completion
  */
-import { fetchSubtitles } from './subtitle-fetcher';
-import { injectTrack } from './track-injector';
-import { extractCourseInfo } from './subtitle-fetcher';
-import { detectNextLecture } from './next-lecture-detector';
-import { loadSettings, isEnabled } from '../storage/settings-manager';
-import { showLoadingIndicator, showSuccessIndicator, showErrorIndicator, hideLoadingIndicator, } from './loading-indicator';
+import { fetchSubtitles } from './subtitle-fetcher.js';
+import { injectTrack } from './track-injector.js';
+import { extractCourseInfo } from './subtitle-fetcher.js';
+import { detectNextLecture } from './next-lecture-detector.js';
+import { loadSettings, isEnabled } from '../storage/settings-manager.js';
+import { showLoadingIndicator, showSuccessIndicator, showErrorIndicator, hideLoadingIndicator, } from './loading-indicator.js';
 const LOG_PREFIX = '[UdemyCaptionPlus][Content]';
 function log(...args) {
     // eslint-disable-next-line no-console

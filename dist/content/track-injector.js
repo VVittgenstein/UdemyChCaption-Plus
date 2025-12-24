@@ -16,7 +16,7 @@
  *
  * @see spike-report-track-inject.md
  */
-import { generateDataUri } from '../utils/webvtt-generator';
+import { generateDataUri } from '../utils/webvtt-generator.js';
 // ============================================
 // Constants
 // ============================================

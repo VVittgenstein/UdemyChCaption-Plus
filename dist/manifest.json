@@ -1,0 +1,30 @@
+{
+  "manifest_version": 3,
+  "name": "Udemy 字幕增强",
+  "version": "0.1.0",
+  "description": "Chrome extension for LLM-powered Chinese subtitle replacement on Udemy",
+  "minimum_chrome_version": "110",
+  "permissions": ["storage", "activeTab"],
+  "host_permissions": ["*://*.udemy.com/*"],
+  "background": {
+    "service_worker": "background/service-worker.js",
+    "type": "module"
+  },
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_title": "Udemy 字幕增强"
+  },
+  "content_scripts": [
+    {
+      "matches": ["*://*.udemy.com/course/*/learn/lecture/*"],
+      "js": ["content/content-script.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["content/*.js", "storage/*.js"],
+      "matches": ["*://*.udemy.com/*"]
+    }
+  ]
+}
