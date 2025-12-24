@@ -1628,8 +1628,8 @@
       ],
       "lane": "next",
       "priority_suggested": "P1",
-      "status": "pending",
-      "status_note": "可使用占位图标先完成 MVP，后续优化设计",
+      "status": "completed",
+      "status_note": "已生成 dist/icons 下 16/48/128 PNG 扩展图标，并在 dist/manifest.json 中配置 icons 与 action.default_icon 引用这些资源（MVP 占位图标：蓝色背景 + 气泡 +「中」）。",
       "dependencies": [
         "T-20251223-act-017-build-manifest"
       ],
@@ -1642,19 +1642,34 @@
         "manifest"
       ],
       "artifacts": [
-        "icons/icon16.png",
-        "icons/icon48.png",
-        "icons/icon128.png"
+        "dist/icons/icon16.png",
+        "dist/icons/icon48.png",
+        "dist/icons/icon128.png",
+        "dist/manifest.json"
       ],
       "citations": [],
       "created_at": "2025-12-24T22:00:00Z",
-      "updated_at": "2025-12-24T22:00:00Z",
-      "owner": "tbd",
+      "updated_at": "2025-12-24T15:22:20Z",
+      "completed_at": "2025-12-24T15:22:20Z",
+      "owner": "codex-cli",
       "tags": [
         "seed:ACT-018",
         "build",
         "assets"
-      ]
+      ],
+      "completion_summary": {
+        "deliverables": [
+          "dist/icons/icon16.png - 扩展图标 (16x16 PNG)",
+          "dist/icons/icon48.png - 扩展图标 (48x48 PNG)",
+          "dist/icons/icon128.png - 扩展图标 (128x128 PNG)"
+        ],
+        "manifest_updates": [
+          "dist/manifest.json: icons / action.default_icon -> icons/icon{size}.png"
+        ],
+        "notes": [
+          "当前为 MVP 占位图标：蓝色背景 + 气泡 +「中」字符；后续可替换为更精细设计但保持路径不变"
+        ]
+      }
     },
     "T-20251223-act-019-e2e-validation": {
       "execution_order": 19,
@@ -1679,21 +1694,14 @@
       "lane": "next",
       "priority_suggested": "P0",
       "status": "pending",
-      "status_note": "需在 manifest.json 和图标完成后执行",
+      "status_note": "已解除阻塞：manifest.json 与扩展图标已就绪，待开始真实环境验证。",
       "dependencies": [
         "T-20251223-act-017-build-manifest",
         "T-20251223-act-018-build-icons"
       ],
-      "blocked": true,
-      "blocked_by": [
-        {
-          "dep_id": "ACT-018",
-          "name": "extension icons",
-          "type": "task",
-          "status": "pending"
-        }
-      ],
-      "unblock_plan": "完成扩展图标后解除阻塞",
+      "blocked": false,
+      "blocked_by": [],
+      "unblock_plan": "",
       "estimate_h": 3,
       "interfaces_touched": [
         "all"
@@ -1703,7 +1711,7 @@
       ],
       "citations": [],
       "created_at": "2025-12-24T22:00:00Z",
-      "updated_at": "2025-12-24T22:00:00Z",
+      "updated_at": "2025-12-24T15:22:20Z",
       "owner": "claude-code",
       "tags": [
         "seed:ACT-019",
