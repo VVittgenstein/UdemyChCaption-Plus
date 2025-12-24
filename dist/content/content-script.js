@@ -7,12 +7,17 @@
  * - Listen for popup "RETRANSLATE_CURRENT"
  * - Trigger translation with force flag
  * - Handle cache hit / translation complete messages
+ *
+ * Updated for Task ID: T-20251223-act-013-build-loading-indicator
+ * - Show loading indicator during translation
+ * - Show success/error indicators on completion
  */
 import { fetchSubtitles } from './subtitle-fetcher';
 import { injectTrack } from './track-injector';
 import { extractCourseInfo } from './subtitle-fetcher';
 import { detectNextLecture } from './next-lecture-detector';
 import { loadSettings, isEnabled } from '../storage/settings-manager';
+import { showLoadingIndicator, showSuccessIndicator, showErrorIndicator, hideLoadingIndicator, } from './loading-indicator';
 const LOG_PREFIX = '[UdemyCaptionPlus][Content]';
 function log(...args) {
     // eslint-disable-next-line no-console
@@ -47,6 +52,12 @@ async function requestTranslation(options) {
     const courseId = courseInfo.courseId || courseInfo.courseSlug || 'unknown-course';
     const lectureId = courseInfo.lectureId || 'unknown-lecture';
     activeTranslationTaskId = taskId;
+    // Show loading indicator if enabled
+    if (settings.showLoadingIndicator) {
+        showLoadingIndicator(videoDetection.video, {
+            message: options.force ? '正在重新翻译…' : '字幕翻译中…',
+        });
+    }
     const message = {
         type: 'TRANSLATE_SUBTITLE',
         payload: {
@@ -68,6 +79,14 @@ async function requestTranslation(options) {
     }
     catch (error) {
         log('Failed to send translation request:', error);
+        // Show error indicator
+        if (settings.showLoadingIndicator) {
+            showErrorIndicator(videoDetection.video, {
+                message: '请求发送失败',
+                errorDetails: String(error),
+                onRetry: () => requestTranslation(options),
+            });
+        }
     }
 }
 async function requestPreloadNextLecture() {
@@ -112,6 +131,11 @@ async function cancelActiveTranslation() {
         return;
     const taskId = activeTranslationTaskId;
     activeTranslationTaskId = null;
+    // Hide loading indicator when cancelling
+    const video = document.querySelector('video');
+    if (video instanceof HTMLVideoElement) {
+        hideLoadingIndicator(video);
+    }
     try {
         await chrome.runtime.sendMessage({ type: 'CANCEL_TRANSLATION', payload: { taskId } });
     }
@@ -144,6 +168,12 @@ function setupMessageListeners() {
                 const video = document.querySelector('video');
                 if (video instanceof HTMLVideoElement) {
                     injectTrack(video, translatedVTT, { activate: true });
+                    // Show success indicator (cache hit)
+                    loadSettings().then((settings) => {
+                        if (settings.showLoadingIndicator) {
+                            showSuccessIndicator(video, { message: '缓存命中' });
+                        }
+                    });
                 }
             }
             return;
@@ -153,14 +183,33 @@ function setupMessageListeners() {
                 activeTranslationTaskId = null;
             }
             const translatedVTT = message.payload?.translatedVTT;
+            const video = document.querySelector('video');
             if (message.payload?.success === true && typeof translatedVTT === 'string') {
-                const video = document.querySelector('video');
                 if (video instanceof HTMLVideoElement) {
                     injectTrack(video, translatedVTT, { activate: true });
+                    // Show success indicator
+                    loadSettings().then((settings) => {
+                        if (settings.showLoadingIndicator) {
+                            showSuccessIndicator(video, { message: '翻译完成' });
+                        }
+                    });
                 }
             }
             else {
-                log('Translation failed:', message.payload?.error || 'unknown error');
+                const errorMsg = message.payload?.error || 'unknown error';
+                log('Translation failed:', errorMsg);
+                // Show error indicator with retry
+                if (video instanceof HTMLVideoElement) {
+                    loadSettings().then((settings) => {
+                        if (settings.showLoadingIndicator) {
+                            showErrorIndicator(video, {
+                                message: '翻译失败',
+                                errorDetails: String(errorMsg),
+                                onRetry: () => requestTranslation({ force: true }),
+                            });
+                        }
+                    });
+                }
             }
             return;
         }

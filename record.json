@@ -1541,6 +1541,214 @@
         "test",
         "R-01"
       ]
+    },
+    "T-20251223-act-017-build-manifest": {
+      "execution_order": 17,
+      "execution_layer": 7,
+      "parallel_with": [],
+      "seed_id": "ACT-017",
+      "title": "创建 manifest.json 扩展配置文件",
+      "type": "build",
+      "summary": "Chrome 扩展核心配置文件，定义扩展元信息、权限、入口点。此为阻断性任务，无此文件扩展无法安装。",
+      "acceptance_draft": [
+        "manifest_version 设为 3 (Manifest V3)",
+        "声明必要权限: storage, activeTab, host_permissions (udemy.com)",
+        "配置 Service Worker 入口: dist/background/service-worker.js",
+        "配置 Content Script: dist/content/content-script.js，匹配 udemy.com 课程页",
+        "配置 Popup: src/popup/popup.html",
+        "填写扩展元信息 (name, version, description)",
+        "扩展可成功加载到 Chrome 开发者模式"
+      ],
+      "lane": "now",
+      "priority_suggested": "P0",
+      "status": "pending",
+      "status_note": "阻断性任务：缺少此文件扩展无法安装运行",
+      "dependencies": [
+        "T-20251223-act-004-design-architecture"
+      ],
+      "blocked": false,
+      "blocked_by": [],
+      "unblock_plan": "",
+      "estimate_h": 1,
+      "interfaces_touched": [
+        "manifest",
+        "chrome-extension"
+      ],
+      "artifacts": [
+        "manifest.json"
+      ],
+      "citations": [
+        "EVID-011"
+      ],
+      "created_at": "2025-12-24T22:00:00Z",
+      "updated_at": "2025-12-24T22:00:00Z",
+      "owner": "claude-code",
+      "tags": [
+        "seed:ACT-017",
+        "build",
+        "blocking",
+        "mvp-critical"
+      ]
+    },
+    "T-20251223-act-018-build-icons": {
+      "execution_order": 18,
+      "execution_layer": 7,
+      "parallel_with": [
+        "ACT-017"
+      ],
+      "seed_id": "ACT-018",
+      "title": "创建扩展图标文件",
+      "type": "build",
+      "summary": "Chrome 扩展图标，用于工具栏、扩展管理页、Chrome Web Store 展示。",
+      "acceptance_draft": [
+        "创建 16x16, 48x48, 128x128 三种尺寸的 PNG 图标",
+        "图标设计体现字幕翻译功能（如带中文的气泡或CC标志）",
+        "manifest.json 正确引用图标路径",
+        "扩展加载后工具栏显示正确图标"
+      ],
+      "lane": "next",
+      "priority_suggested": "P1",
+      "status": "pending",
+      "status_note": "可使用占位图标先完成 MVP，后续优化设计",
+      "dependencies": [
+        "T-20251223-act-017-build-manifest"
+      ],
+      "blocked": false,
+      "blocked_by": [],
+      "unblock_plan": "",
+      "estimate_h": 2,
+      "interfaces_touched": [
+        "assets",
+        "manifest"
+      ],
+      "artifacts": [
+        "icons/icon16.png",
+        "icons/icon48.png",
+        "icons/icon128.png"
+      ],
+      "citations": [],
+      "created_at": "2025-12-24T22:00:00Z",
+      "updated_at": "2025-12-24T22:00:00Z",
+      "owner": "tbd",
+      "tags": [
+        "seed:ACT-018",
+        "build",
+        "assets"
+      ]
+    },
+    "T-20251223-act-019-e2e-validation": {
+      "execution_order": 19,
+      "execution_layer": 8,
+      "parallel_with": [],
+      "seed_id": "ACT-019",
+      "title": "真实环境端到端验证",
+      "type": "validation",
+      "summary": "在真实 Udemy 页面验证扩展完整功能流程，确保所有模块协同工作正常。",
+      "acceptance_draft": [
+        "扩展成功加载到 Chrome（无控制台错误）",
+        "打开 Udemy 课程视频页，自动检测到视频和字幕",
+        "配置 API Key 后点击翻译，字幕成功翻译并注入",
+        "翻译后的字幕在播放器菜单可选择",
+        "字幕与视频时间轴同步正确",
+        "全屏模式下字幕正常显示",
+        "缓存命中时直接显示已翻译字幕",
+        "预加载下一课功能正常",
+        "Popup 设置面板各选项生效",
+        "费用估算正确显示"
+      ],
+      "lane": "next",
+      "priority_suggested": "P0",
+      "status": "pending",
+      "status_note": "需在 manifest.json 和图标完成后执行",
+      "dependencies": [
+        "T-20251223-act-017-build-manifest",
+        "T-20251223-act-018-build-icons"
+      ],
+      "blocked": true,
+      "blocked_by": [
+        {
+          "dep_id": "ACT-017",
+          "name": "manifest.json",
+          "type": "task",
+          "status": "pending"
+        }
+      ],
+      "unblock_plan": "完成 manifest.json 后解除阻塞",
+      "estimate_h": 3,
+      "interfaces_touched": [
+        "all"
+      ],
+      "artifacts": [
+        "docs/e2e-validation-report.md"
+      ],
+      "citations": [],
+      "created_at": "2025-12-24T22:00:00Z",
+      "updated_at": "2025-12-24T22:00:00Z",
+      "owner": "claude-code",
+      "tags": [
+        "seed:ACT-019",
+        "validation",
+        "e2e",
+        "mvp-critical"
+      ]
+    },
+    "T-20251223-act-020-chrome-store-prep": {
+      "execution_order": 20,
+      "execution_layer": 9,
+      "parallel_with": [],
+      "seed_id": "ACT-020",
+      "title": "Chrome Web Store 发布准备",
+      "type": "doc",
+      "summary": "准备 Chrome Web Store 发布所需材料，包括商店描述、截图、分类选择等。",
+      "acceptance_draft": [
+        "撰写商店描述（短描述 + 详细描述）",
+        "准备 1-5 张功能截图（1280x800 或 640x400）",
+        "准备宣传图片（440x280 小型, 920x680 大型 marquee 可选）",
+        "确认分类 (Productivity / Education)",
+        "确认隐私政策 URL 可访问",
+        "打包扩展为 .zip 文件",
+        "创建 Chrome 开发者账号（如尚未有）"
+      ],
+      "lane": "later",
+      "priority_suggested": "P2",
+      "status": "pending",
+      "status_note": "E2E 验证通过后执行",
+      "dependencies": [
+        "T-20251223-act-019-e2e-validation",
+        "T-20251223-act-014-doc-privacy-policy"
+      ],
+      "blocked": true,
+      "blocked_by": [
+        {
+          "dep_id": "ACT-019",
+          "name": "E2E 验证",
+          "type": "task",
+          "status": "pending"
+        }
+      ],
+      "unblock_plan": "E2E 验证通过后解除阻塞",
+      "estimate_h": 4,
+      "interfaces_touched": [
+        "docs",
+        "chrome-store"
+      ],
+      "artifacts": [
+        "docs/store-listing.md",
+        "screenshots/",
+        "dist.zip"
+      ],
+      "citations": [
+        "EVID-011"
+      ],
+      "created_at": "2025-12-24T22:00:00Z",
+      "updated_at": "2025-12-24T22:00:00Z",
+      "owner": "tbd",
+      "tags": [
+        "seed:ACT-020",
+        "doc",
+        "chrome-store",
+        "release"
+      ]
     }
   },
   "questions_for_human": [

@@ -11,6 +11,7 @@
  */
 import { loadSettings, isEnabled } from '../storage/settings-manager';
 import { subtitleCache } from '../storage/subtitle-cache';
+import { addSessionCost, updateSessionCostState } from '../storage/session-cost';
 import { checkSubtitleVersion } from './version-checker';
 import { translateVTT } from './translator';
 const LOG_PREFIX = '[UdemyCaptionPlus][Preloader]';
@@ -311,7 +312,24 @@ export async function preloadLecture(request) {
             },
             signal,
         });
+        const actualTokens = typeof result.tokensUsed === 'number' ? result.tokensUsed : 0;
+        const actualCostUsd = typeof result.estimatedCost === 'number' ? result.estimatedCost : 0;
+        const now = Date.now();
+        const taskId = `preload-${courseId}-${lectureId}-${now}`;
         if (!result.success || !result.translatedVTT) {
+            if (actualTokens > 0 || actualCostUsd > 0) {
+                await addSessionCost(actualTokens, actualCostUsd);
+                await updateSessionCostState({
+                    lastActual: {
+                        taskId,
+                        provider: settings.provider,
+                        model: settings.model,
+                        tokensUsed: actualTokens,
+                        costUsd: actualCostUsd,
+                        createdAt: now,
+                    },
+                });
+            }
             return {
                 ok: false,
                 status: 'error',
@@ -323,6 +341,19 @@ export async function preloadLecture(request) {
                 error: result.error || 'Translation failed',
             };
         }
+        if (actualTokens > 0 || actualCostUsd > 0) {
+            await addSessionCost(actualTokens, actualCostUsd);
+            await updateSessionCostState({
+                lastActual: {
+                    taskId,
+                    provider: settings.provider,
+                    model: settings.model,
+                    tokensUsed: actualTokens,
+                    costUsd: actualCostUsd,
+                    createdAt: now,
+                },
+            });
+        }
         await subtitleCache.set({
             courseId,
             lectureId,
@@ -332,8 +363,8 @@ export async function preloadLecture(request) {
             translatedVTT: result.translatedVTT,
             provider: settings.provider,
             model: settings.model,
-            tokensUsed: typeof result.tokensUsed === 'number' ? result.tokensUsed : 0,
-            estimatedCost: typeof result.estimatedCost === 'number' ? result.estimatedCost : 0,
+            tokensUsed: actualTokens,
+            estimatedCost: actualCostUsd,
         });
         return {
             ok: true,
