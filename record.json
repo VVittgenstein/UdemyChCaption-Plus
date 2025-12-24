@@ -1510,7 +1510,8 @@
       ],
       "lane": "later",
       "priority_suggested": "P2",
-      "status": "todo",
+      "status": "completed",
+      "status_note": "已建立 Playwright E2E 监控：覆盖视频元素识别（按扩展选择器契约）、字幕 VTT 响应观测与可抓取性校验、Data URI <track> 注入并激活验证。新增 GitHub Actions 定期（每周）运行并上传 Playwright 报告/trace；失败即触发 Actions 通知。支持通过 secrets.UDEMY_E2E_STORAGE_STATE_JSON 注入登录态以访问课时页面。",
       "dependencies": [
         "T-20251223-act-008-build-track-injector"
       ],
@@ -1523,14 +1524,17 @@
         "ci"
       ],
       "artifacts": [
-        "tests/e2e/udemy-subtitle.spec.ts"
+        "tests/e2e/udemy-subtitle.spec.ts",
+        "playwright.config.ts",
+        ".github/workflows/e2e-monitor.yml"
       ],
       "citations": [
         "EVID-008"
       ],
       "created_at": "2025-12-23T12:00:00Z",
-      "updated_at": "2025-12-23T12:00:00Z",
-      "owner": "tbd",
+      "updated_at": "2025-12-24T12:54:00Z",
+      "completed_at": "2025-12-24T12:54:00Z",
+      "owner": "codex-cli",
       "tags": [
         "seed:ACT-015",
         "build",
