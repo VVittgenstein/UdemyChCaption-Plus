@@ -1313,7 +1313,8 @@
       ],
       "lane": "next",
       "priority_suggested": "P2",
-      "status": "todo",
+      "status": "completed",
+      "status_note": "加载状态提示模块实现完成！支持 loading/success/error 三种状态，样式与 Udemy 播放器风格一致（紫色主题 #a435f0），包含自动隐藏、重试按钮、XSS 防护等功能。已集成到 content-script.ts，根据 showLoadingIndicator 设置显示/隐藏。66 个单元测试全部通过。",
       "dependencies": [
         "T-20251223-act-008-build-track-injector"
       ],
@@ -1326,20 +1327,94 @@
         "ui"
       ],
       "artifacts": [
-        "src/content/loading-indicator.ts"
+        "src/content/loading-indicator.ts",
+        "src/content/__tests__/loading-indicator.test.ts",
+        "src/content/content-script.ts",
+        "Compact/Compact-T-20251223-act-013-build-loading-indicator-2025-12-24-T063500Z.md"
       ],
       "citations": [
         "EVID-001"
       ],
       "created_at": "2025-12-23T12:00:00Z",
-      "updated_at": "2025-12-23T12:00:00Z",
-      "owner": "tbd",
+      "updated_at": "2025-12-24T11:15:00Z",
+      "completed_at": "2025-12-24T06:35:00Z",
+      "owner": "claude-code",
       "tags": [
         "seed:ACT-013",
         "build",
         "NFR-02",
         "ux"
-      ]
+      ],
+      "code_review": {
+        "status": "passed",
+        "reviewed_at": "2025-12-24T11:15:00Z",
+        "findings_resolved": 2,
+        "fixes": [
+          "[P1] findVideoContainer: 将无效的 CSS 选择器 '.video-player--container--*' 替换为有效的属性选择器 '[class*=\"video-player--container--\"]'，修复因无效选择器导致 video.closest() 抛出 DOMException 的问题",
+          "[P2] createIndicatorElement: 移除硬编码的 id 属性以避免多视频页面产生重复 DOM ID。indicator 元素已通过 WeakMap 按 video 跟踪，CSS 使用 class 选择器，无需 ID"
+        ]
+      },
+      "completion_summary": {
+        "deliverables": [
+          "src/content/loading-indicator.ts - 加载状态提示模块 (550+ 行)",
+          "src/content/__tests__/loading-indicator.test.ts - 单元测试 (67 个测试用例)",
+          "src/content/content-script.ts - 集成加载提示功能"
+        ],
+        "key_features": {
+          "indicator_states": [
+            "loading: 显示旋转动画 + '字幕翻译中…' / '正在重新翻译…'",
+            "success: 显示勾选图标 + '翻译完成' / '缓存命中'，3秒后自动隐藏",
+            "error: 显示错误图标 + 错误详情 + 重试/关闭按钮"
+          ],
+          "ui_styling": [
+            "紫色主题 (#a435f0) 与 Udemy 播放器风格一致",
+            "支持 5 种位置：top-left, top-right, bottom-left, bottom-right, center",
+            "平滑的 CSS 过渡动画",
+            "响应式定位，适配全屏模式"
+          ],
+          "api_interface": [
+            "函数式 API: showLoadingIndicator, showSuccessIndicator, showErrorIndicator, hideLoadingIndicator",
+            "类式 API: LoadingIndicator 类封装",
+            "状态查询: getIndicatorStatus, isIndicatorVisible",
+            "消息更新: updateLoadingMessage"
+          ],
+          "integration": [
+            "requestTranslation: 翻译开始时显示加载提示",
+            "CACHE_HIT: 缓存命中时显示成功提示",
+            "TRANSLATION_COMPLETE: 翻译完成显示成功/错误提示",
+            "cancelActiveTranslation: 取消翻译时隐藏提示",
+            "受 showLoadingIndicator 设置控制"
+          ],
+          "security": [
+            "XSS 防护：HTML 内容转义",
+            "WeakMap 状态管理：避免内存泄漏"
+          ]
+        },
+        "test_coverage": {
+          "total_tests": 67,
+          "categories": [
+            "Constants (2 tests)",
+            "showLoadingIndicator (10 tests)",
+            "showSuccessIndicator (6 tests)",
+            "showErrorIndicator (10 tests)",
+            "hideLoadingIndicator (4 tests)",
+            "removeLoadingIndicator (3 tests)",
+            "getIndicatorStatus (4 tests)",
+            "isIndicatorVisible (3 tests)",
+            "updateLoadingMessage (3 tests)",
+            "LoadingIndicator class (11 tests)",
+            "XSS Prevention (2 tests)",
+            "Multiple video elements (1 test)",
+            "Position variants (5 tests)",
+            "Style injection (2 tests)"
+          ]
+        },
+        "next_steps": [
+          "在真实 Udemy 页面验证视觉效果",
+          "测试全屏模式下的提示显示",
+          "与 Popup 设置的 showLoadingIndicator 开关联动"
+        ]
+      }
     },
     "T-20251223-act-014-doc-privacy-policy": {
       "execution_order": 15,
