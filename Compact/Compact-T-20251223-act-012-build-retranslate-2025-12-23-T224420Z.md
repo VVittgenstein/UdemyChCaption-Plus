@@ -85,3 +85,44 @@ TranslationOptions.onProgress?: (progress: number) => void
 - 仅在触发翻译请求时进行 hash 校验；不存在“后台持续监听字幕版本变化并自动触发重译”的常驻监听机制（字幕变化需下一次翻译触发才会生效）。
 - Extension 入口点已新增为 `src/content/content-script.ts` 与 `src/background/service-worker.ts`，但仓库未包含 manifest 侧的声明/装配细节（需在 Manifest V3 中声明 content scripts 与 service worker 才能在浏览器中运行）。
 
+
+## Code Review - T-20251223-act-012 - 2025-12-24T00:10:00Z
+
+```
+{
+  "findings": [
+    {
+      "title": "[P1] Preload translations bypass session cost tracking",
+      "body": "Background preloads translate subtitles and write them to `subtitleCache` but never update the session cost state (`addSessionCost`/`updateSessionCostState`). In `preloadLecture` the translation result at `translateVTT` is saved (lines 389-398) and the function returns without recording tokens or USD spent, unlike the normal translation path in `service-worker.ts` which does add costs. This means any automatic preload translations will be invisible to cost limits/analytics and can silently exceed usage budgets whenever preload is enabled.",
+      "confidence_score": 0.42,
+      "priority": 1,
+      "code_location": {
+        "absolute_file_path": "/mnt/z/Project/UdemyChCaption-Plus/src/services/preloader.ts",
+        "line_range": {
+          "start": 389,
+          "end": 398
+        }
+      }
+    }
+  ],
+  "overall_correctness": "patch is incorrect",
+  "overall_explanation": "Preload translation now runs in the background but skips the session cost accounting used elsewhere, so usage and budgets become inaccurate when preloading is enabled.",
+  "overall_confidence_score": 0.42
+}
+```
+
+## Code Review Resolution - 2025-12-24T00:20:26Z
+
+### Finding: [P1] Preload translations bypass session cost tracking
+
+**Status**: ✅ RESOLVED
+
+**Root Cause**: `preloadLecture()` 走了 `translateVTT()` → `subtitleCache.set()` 的静默预加载路径，但未像 `service-worker.ts` 的正常翻译入口那样调用 `addSessionCost()` / `updateSessionCostState()`，导致预加载翻译消耗的 tokens/USD 不会计入会话累计与 analytics/预算控制。
+
+**Fix Applied**:
+- `src/services/preloader.ts`: 在预加载翻译完成后（成功/失败）提取 `tokensUsed/estimatedCost`，并在 `> 0` 时调用 `addSessionCost(actualTokens, actualCostUsd)` 累计 totals，同时通过 `updateSessionCostState({ lastActual: ... })` 写入最近一次实际消耗快照（使用 `taskId=preload-{courseId}-{lectureId}-{timestamp}`）。
+- `src/services/__tests__/preloader.test.ts`: 增强单测，断言预加载翻译会增加 session totals 且写入 `lastActual`；cache 命中路径不会重复计费。
+
+**Verification**:
+- `npm test -- --runTestsByPath src/services/__tests__/preloader.test.ts` ✅
+- `npm run type-check` ✅

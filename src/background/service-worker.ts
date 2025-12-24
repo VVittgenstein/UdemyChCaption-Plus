@@ -12,11 +12,16 @@ import { subtitleCache } from '../storage/subtitle-cache';
 import { addSessionCost, updateSessionCostState } from '../storage/session-cost';
 import { checkSubtitleVersion } from '../services/version-checker';
 import { estimateTranslationCost, translateVTT } from '../services/translator';
+import { preloadLecture } from '../services/preloader';
 import { calculateHash } from '../utils/hash';
 
 type AnyMessage = { type: string; payload?: any; meta?: any };
 
 const activeControllers = new Map<string, AbortController>();
+const activePreloadByTab = new Map<
+  number,
+  { controller: AbortController; courseId: string; lectureId: string }
+>();
 
 function sendToTab(tabId: number, message: AnyMessage): void {
   if (typeof chrome === 'undefined' || !chrome.tabs?.sendMessage) return;
@@ -243,6 +248,46 @@ function handleCancel(taskId: string | undefined): void {
   activeControllers.delete(taskId);
 }
 
+async function handlePreloadNext(sender: chrome.runtime.MessageSender, payload: any): Promise<void> {
+  const tabId = sender.tab?.id;
+  if (!tabId) return;
+
+  const courseId: string | undefined = payload?.courseId;
+  const nextLectureId: string | undefined = payload?.nextLectureId;
+  if (!courseId || !nextLectureId) return;
+
+  const settings = await loadSettings();
+  if (!isEnabled(settings) || !settings.preloadEnabled) return;
+
+  const existing = activePreloadByTab.get(tabId);
+  if (existing && existing.courseId === courseId && existing.lectureId === nextLectureId) {
+    return;
+  }
+  if (existing) {
+    existing.controller.abort();
+    activePreloadByTab.delete(tabId);
+  }
+
+  const controller = new AbortController();
+  activePreloadByTab.set(tabId, { controller, courseId, lectureId: nextLectureId });
+
+  try {
+    await preloadLecture({
+      courseId,
+      lectureId: nextLectureId,
+      courseName: payload?.courseName,
+      sectionName: payload?.sectionName,
+      lectureName: payload?.nextLectureTitle,
+      signal: controller.signal,
+    });
+  } finally {
+    const current = activePreloadByTab.get(tabId);
+    if (current?.controller === controller) {
+      activePreloadByTab.delete(tabId);
+    }
+  }
+}
+
 function initMessageHandler(): void {
   if (typeof chrome === 'undefined' || !chrome.runtime?.onMessage) return;
 
@@ -262,6 +307,13 @@ function initMessageHandler(): void {
     if (message.type === 'GET_SETTINGS') {
       loadSettings()
         .then((settings) => sendResponse?.({ ok: true, settings }))
+        .catch((error) => sendResponse?.({ ok: false, error: String(error) }));
+      return true;
+    }
+
+    if (message.type === 'PRELOAD_NEXT') {
+      handlePreloadNext(sender, message.payload)
+        .then(() => sendResponse?.({ ok: true }))
         .catch((error) => sendResponse?.({ ok: false, error: String(error) }));
       return true;
     }

@@ -11,6 +11,8 @@
 
 import { fetchSubtitles } from './subtitle-fetcher';
 import { injectTrack } from './track-injector';
+import { extractCourseInfo } from './subtitle-fetcher';
+import { detectNextLecture } from './next-lecture-detector';
 import { loadSettings, isEnabled } from '../storage/settings-manager';
 
 const LOG_PREFIX = '[UdemyCaptionPlus][Content]';
@@ -23,6 +25,9 @@ function log(...args: unknown[]): void {
 function generateTaskId(prefix: string): string {
   return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
+
+let activeTranslationTaskId: string | null = null;
+let lastPreloadKey: string | null = null;
 
 async function requestTranslation(options: { force: boolean; taskId?: string }): Promise<void> {
   const settings = await loadSettings();
@@ -51,6 +56,8 @@ async function requestTranslation(options: { force: boolean; taskId?: string }):
   const courseId = courseInfo.courseId || courseInfo.courseSlug || 'unknown-course';
   const lectureId = courseInfo.lectureId || 'unknown-lecture';
 
+  activeTranslationTaskId = taskId;
+
   const message = {
     type: 'TRANSLATE_SUBTITLE',
     payload: {
@@ -75,6 +82,58 @@ async function requestTranslation(options: { force: boolean; taskId?: string }):
   }
 }
 
+async function requestPreloadNextLecture(): Promise<void> {
+  const settings = await loadSettings();
+  if (!isEnabled(settings) || !settings.preloadEnabled) return;
+
+  const courseInfo = extractCourseInfo();
+  if (!courseInfo) return;
+
+  const courseId = courseInfo.courseId || courseInfo.courseSlug || 'unknown-course';
+  const currentLectureId = courseInfo.lectureId;
+
+  const result = await detectNextLecture({
+    courseId,
+    courseSlug: courseInfo.courseSlug,
+    currentLectureId,
+  });
+
+  if (!result.nextLectureId) return;
+
+  const preloadKey = `${courseId}-${result.nextLectureId}`;
+  if (preloadKey === lastPreloadKey) return;
+  lastPreloadKey = preloadKey;
+
+  const message = {
+    type: 'PRELOAD_NEXT',
+    payload: {
+      courseId,
+      nextLectureId: result.nextLectureId,
+      nextLectureTitle: result.nextLectureTitle || '',
+      courseName: courseInfo.courseTitle || '',
+      sectionName: courseInfo.sectionTitle || '',
+    },
+  };
+
+  try {
+    await chrome.runtime.sendMessage(message);
+  } catch (error) {
+    log('Failed to send preload request:', error);
+  }
+}
+
+async function cancelActiveTranslation(): Promise<void> {
+  if (!activeTranslationTaskId) return;
+  const taskId = activeTranslationTaskId;
+  activeTranslationTaskId = null;
+
+  try {
+    await chrome.runtime.sendMessage({ type: 'CANCEL_TRANSLATION', payload: { taskId } });
+  } catch {
+    // ignore
+  }
+}
+
 function setupMessageListeners(): void {
   if (typeof chrome === 'undefined' || !chrome.runtime?.onMessage) return;
 
@@ -93,6 +152,9 @@ function setupMessageListeners(): void {
     }
 
     if (message.type === 'CACHE_HIT') {
+      if (message.payload?.taskId && message.payload.taskId === activeTranslationTaskId) {
+        activeTranslationTaskId = null;
+      }
       const translatedVTT = message.payload?.translatedVTT;
       if (typeof translatedVTT === 'string' && translatedVTT.trim().startsWith('WEBVTT')) {
         const video = document.querySelector('video');
@@ -104,6 +166,9 @@ function setupMessageListeners(): void {
     }
 
     if (message.type === 'TRANSLATION_COMPLETE') {
+      if (message.payload?.taskId && message.payload.taskId === activeTranslationTaskId) {
+        activeTranslationTaskId = null;
+      }
       const translatedVTT = message.payload?.translatedVTT;
       if (message.payload?.success === true && typeof translatedVTT === 'string') {
         const video = document.querySelector('video');
@@ -120,7 +185,7 @@ function setupMessageListeners(): void {
   });
 }
 
-async function autoTranslateOnLoad(): Promise<void> {
+async function autoTranslateIfEnabled(): Promise<void> {
   try {
     const settings = await loadSettings();
     if (!isEnabled(settings) || !settings.autoTranslate) return;
@@ -130,9 +195,32 @@ async function autoTranslateOnLoad(): Promise<void> {
   }
 }
 
+function getLectureIdFromUrl(): string | null {
+  return window.location.pathname.match(/\/learn\/lecture\/(\d+)/)?.[1] ?? null;
+}
+
+function watchLectureNavigation(): void {
+  let lastLectureId = getLectureIdFromUrl();
+
+  setInterval(() => {
+    const currentLectureId = getLectureIdFromUrl();
+    if (!currentLectureId || currentLectureId === lastLectureId) return;
+    lastLectureId = currentLectureId;
+
+    lastPreloadKey = null;
+
+    cancelActiveTranslation()
+      .then(() => autoTranslateIfEnabled())
+      .then(() => requestPreloadNextLecture())
+      .catch((error) => log('Lecture navigation handler failed:', error));
+  }, 1000);
+}
+
 function init(): void {
   setupMessageListeners();
-  void autoTranslateOnLoad();
+  watchLectureNavigation();
+  void autoTranslateIfEnabled();
+  void requestPreloadNextLecture();
 }
 
 init();

@@ -157,6 +157,9 @@ export type MessageToBackground = {
     payload: {
         courseId: string;
         nextLectureId: string;
+        nextLectureTitle?: string;
+        courseName?: string;
+        sectionName?: string;
     };
 } | {
     type: 'GET_SETTINGS';

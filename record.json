@@ -1075,7 +1075,7 @@
         "EVID-001"
       ],
       "created_at": "2025-12-23T12:00:00Z",
-      "updated_at": "2025-12-23T22:11:01Z",
+      "updated_at": "2025-12-24T00:20:26Z",
       "completed_at": "2025-12-23T22:11:01Z",
       "owner": "codex-cli",
       "tags": [
@@ -1083,6 +1083,14 @@
         "build",
         "FR-08"
       ],
+      "code_review": {
+        "status": "passed",
+        "reviewed_at": "2025-12-24T00:20:26Z",
+        "findings_resolved": 1,
+        "fixes": [
+          "[P1] preloadLecture: 预加载翻译现在会调用 addSessionCost()/updateSessionCostState() 计入会话累计（tokens/USD），与正常翻译入口保持一致，避免启用 preload 时绕过成本统计"
+        ]
+      },
       "completion_summary": {
         "deliverables": [
           "src/services/version-checker.ts - 字幕版本检测与重译决策",
@@ -1134,7 +1142,7 @@
       "lane": "later",
       "priority_suggested": "P2",
       "status": "completed",
-      "status_note": "已实现费用/Token 估算与展示：Service Worker 在翻译前发送 COST_ESTIMATE（预估 tokens/费用），翻译完成后发送实际 tokens/费用并累计到会话总额；Popup 新增 CostDisplay 区域展示“预估/本次/会话累计”，并支持缓存命中时展示历史消耗。",
+      "status_note": "已实现费用/Token 估算与展示：Service Worker 在翻译前发送 COST_ESTIMATE（预估 tokens/费用），翻译完成后发送实际 tokens/费用并累计到会话总额；Popup 新增 CostDisplay 区域展示“预估/本次/会话累计”，并支持缓存命中时展示历史消耗。已补齐预加载翻译计费：preload 模式下的后台翻译同样计入会话累计，避免绕过成本统计。",
       "dependencies": [
         "T-20251223-act-007-build-llm-translator",
         "T-20251223-act-009-build-popup-settings"
@@ -1162,7 +1170,7 @@
         "EVID-010"
       ],
       "created_at": "2025-12-23T12:00:00Z",
-      "updated_at": "2025-12-23T23:23:50Z",
+      "updated_at": "2025-12-24T00:20:26Z",
       "completed_at": "2025-12-23T23:20:42Z",
       "owner": "codex-cli",
       "tags": [
@@ -1182,6 +1190,7 @@
         "key_features": [
           "翻译前预估：基于字幕内容估算 tokens，并按模型定价计算预估费用",
           "翻译后统计：展示实际 tokens 与费用，并累计到本次会话总费用",
+          "预加载计费：后台 preload 翻译同样会累计到会话总费用，避免开启预加载后成本统计失真",
           "Popup 展示：预估 / 本次 / 会话累计（支持缓存命中显示历史消耗）",
           "开关控制：showCostEstimate 关闭时隐藏费用区块"
         ],
@@ -1214,7 +1223,8 @@
       ],
       "lane": "next",
       "priority_suggested": "P2",
-      "status": "todo",
+      "status": "completed",
+      "status_note": "预加载模块实现完成：Content Script 自动识别下一课（Curriculum API 优先，UD 全局兜底），向 Service Worker 发送 PRELOAD_NEXT；Service Worker 后台抓取下一课字幕、调用 LLM 翻译并写入 IndexedDB 缓存；同一 Tab 新预加载请求会自动中断旧任务以适配快速跳转。预加载翻译同样会计入 session cost 会话累计，避免绕过成本统计/预算。新增 5 个单元测试通过，并通过 type-check/build。",
       "dependencies": [
         "T-20251223-act-002-spike-next-lecture",
         "T-20251223-act-007-build-llm-translator",
@@ -1226,23 +1236,62 @@
       "estimate_h": 6,
       "interfaces_touched": [
         "service-worker",
-        "content-script"
+        "content-script",
+        "storage"
       ],
       "artifacts": [
-        "src/services/preloader.ts"
+        "src/services/preloader.ts",
+        "src/background/service-worker.ts",
+        "src/content/content-script.ts",
+        "src/content/next-lecture-detector.ts",
+        "src/types/index.ts",
+        "src/services/__tests__/preloader.test.ts",
+        "src/content/__tests__/next-lecture-detector.test.ts"
       ],
       "citations": [
         "EVID-001"
       ],
       "created_at": "2025-12-23T12:00:00Z",
-      "updated_at": "2025-12-23T12:00:00Z",
-      "owner": "tbd",
+      "updated_at": "2025-12-24T00:20:26Z",
+      "completed_at": "2025-12-23T23:59:51Z",
+      "owner": "codex-cli",
       "tags": [
         "seed:ACT-011",
         "build",
         "FR-06",
         "preload"
-      ]
+      ],
+      "completion_summary": {
+        "deliverables": [
+          "src/services/preloader.ts - 后台预加载（抓取字幕/翻译/写入缓存，支持 AbortSignal 取消）",
+          "src/content/next-lecture-detector.ts - 下一课 ID 检测（Curriculum API 优先 + UD fallback）",
+          "src/background/service-worker.ts - PRELOAD_NEXT 消息处理与按 Tab 中断旧预加载",
+          "src/content/content-script.ts - 触发预加载 + SPA 路由变更自动翻译/预加载",
+          "src/services/__tests__/preloader.test.ts - 预加载缓存写入/命中测试",
+          "src/content/__tests__/next-lecture-detector.test.ts - 下一课检测测试"
+        ],
+        "key_features": {
+          "detection": [
+            "自动识别下一课 ID（Curriculum API 优先，UD 全局兜底）"
+          ],
+          "preload_pipeline": [
+            "Service Worker 后台抓取下一课 WebVTT 并静默翻译",
+            "预加载翻译同样计入会话累计 tokens/费用（session-cost），避免开启 preload 时成本统计失真",
+            "翻译结果写入 IndexedDB（SubtitleCache），跳转后可直接命中缓存"
+          ],
+          "cancellation": [
+            "同一 Tab 新 PRELOAD_NEXT 到来时自动 abort 旧预加载任务，减少无用翻译请求"
+          ]
+        },
+        "test_coverage": {
+          "added_tests": 5,
+          "commands": [
+            "npm test",
+            "npm run type-check",
+            "npm run build"
+          ]
+        }
+      }
     },
     "T-20251223-act-013-build-loading-indicator": {
       "execution_order": 14,

@@ -167,7 +167,16 @@ export interface CostEstimateResult {
 export type MessageToBackground =
   | { type: 'TRANSLATE_SUBTITLE'; payload: TranslateRequest }
   | { type: 'CHECK_CACHE'; payload: { courseId: string; lectureId: string } }
-  | { type: 'PRELOAD_NEXT'; payload: { courseId: string; nextLectureId: string } }
+  | {
+      type: 'PRELOAD_NEXT';
+      payload: {
+        courseId: string;
+        nextLectureId: string;
+        nextLectureTitle?: string;
+        courseName?: string;
+        sectionName?: string;
+      };
+    }
   | { type: 'GET_SETTINGS' }
   | { type: 'CANCEL_TRANSLATION'; payload: { taskId: string } };
 

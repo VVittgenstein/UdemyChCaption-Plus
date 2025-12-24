@@ -33,6 +33,7 @@
 
 - 翻译完成后，Service Worker 取 `translateVTT()` 返回的 `tokensUsed` / `estimatedCost` 作为“本次实际消耗”（缺失则按 0 处理）。
 - 会话累计通过 `addSessionCost(deltaTokens, deltaCostUsd)` 更新 `totals.totalTokens` / `totals.totalCostUsd`，并写入 `lastActual`。
+- 预加载翻译（`preloadLecture()`）同样会调用 `addSessionCost()` / `updateSessionCostState()` 计入会话累计，避免开启 preload 时绕过费用统计。(src/services/preloader.ts)
 - `TRANSLATION_COMPLETE` payload 增加 `provider/model` 以及 `sessionTotalTokens/sessionTotalCostUsd`，用于 Popup 实时刷新“会话累计”。
 - 缓存命中时（无需调用 LLM），Popup 会收到带历史 `tokensUsed/costUsd` 的 `CACHE_HIT` 消息用于展示“本次”（不增加会话累计）。
 
@@ -88,4 +89,3 @@
 - 费用/Token 估算为启发式：与真实计费可能存在偏差（未区分 input/output 不同单价；未知模型使用默认单价）。
 - 若上游 API 未返回 usage，`tokensUsed/estimatedCost` 可能为 0，从而影响“本次实际消耗”的准确性。
 - 当前未提供“清空会话累计”的 UI（不在本 Subtask 验收范围内）。
-
