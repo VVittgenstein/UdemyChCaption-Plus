@@ -1436,9 +1436,9 @@
         "README 包含使用说明（配置 API Key、开启字幕等）",
         "README 包含 FAQ"
       ],
-      "lane": "next",
+      "lane": "later",
       "priority_suggested": "P2",
-      "status": "todo",
+      "status": "completed",
       "dependencies": [],
       "blocked": false,
       "blocked_by": [],
@@ -1456,13 +1456,39 @@
         "EVID-011"
       ],
       "created_at": "2025-12-23T12:00:00Z",
-      "updated_at": "2025-12-23T12:00:00Z",
+      "updated_at": "2025-12-24T20:05:00Z",
+      "completed_at": "2025-12-24T20:05:00Z",
       "owner": "tbd",
       "tags": [
         "seed:ACT-014",
         "doc",
         "chrome-store"
-      ]
+      ],
+      "code_review": {
+        "reviewed_at": "2025-12-24T12:01:40Z",
+        "findings": [
+          {
+            "id": "CR-014-001",
+            "title": "[P2] Fix placeholder repo URL in install steps",
+            "priority": 2,
+            "status": "resolved",
+            "location": "README.md:17-21",
+            "resolution": "Updated clone URL from your-username to VVittgenstein",
+            "resolved_at": "2025-12-24T20:05:00Z"
+          },
+          {
+            "id": "CR-014-002",
+            "title": "[P2] Update privacy policy date to match current release",
+            "priority": 2,
+            "status": "resolved",
+            "location": "PRIVACY.md:1-4",
+            "resolution": "Updated date from 2024-12-24 to 2025-12-24",
+            "resolved_at": "2025-12-24T19:15:00Z"
+          }
+        ],
+        "open_count": 0,
+        "resolved_count": 2
+      }
     },
     "T-20251223-act-015-build-e2e-monitor": {
       "execution_order": 16,
