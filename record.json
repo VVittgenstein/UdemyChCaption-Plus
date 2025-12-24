@@ -1742,8 +1742,8 @@
       ],
       "lane": "later",
       "priority_suggested": "P2",
-      "status": "pending",
-      "status_note": "E2E 验证已完成，可开始执行",
+      "status": "completed",
+      "status_note": "已完成：创建了 docs/store-listing.md（含商店描述、截图清单、宣传图说明）、screenshots/ 目录、udemy-subtitle-enhancement.zip 打包文件。隐私政策 URL 已验证可访问。截图和宣传图需用户手动制作。",
       "dependencies": [
         "T-20251223-act-019-e2e-validation",
         "T-20251223-act-014-doc-privacy-policy"
@@ -1759,14 +1759,14 @@
       "artifacts": [
         "docs/store-listing.md",
         "screenshots/",
-        "dist.zip"
+        "udemy-subtitle-enhancement.zip"
       ],
       "citations": [
         "EVID-011"
       ],
       "created_at": "2025-12-24T22:00:00Z",
-      "updated_at": "2025-12-24T22:00:00Z",
-      "owner": "tbd",
+      "updated_at": "2025-12-25T07:40:00Z",
+      "owner": "claude-code",
       "tags": [
         "seed:ACT-020",
         "doc",
