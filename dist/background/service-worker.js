@@ -5,6 +5,10 @@
     provider: "openai",
     apiKey: "",
     model: "gpt-5.1",
+    openaiBaseUrl: "",
+    // Empty = use official https://api.openai.com/v1
+    geminiBaseUrl: "",
+    // Empty = use official https://generativelanguage.googleapis.com/v1beta
     enabled: true,
     autoTranslate: true,
     preloadEnabled: true,
@@ -1126,7 +1130,7 @@
 
   // src/services/openai-client.ts
   var LOG_PREFIX3 = "[OpenAI Client]";
-  var OPENAI_API_BASE = "https://api.openai.com/v1";
+  var OPENAI_DEFAULT_BASE = "https://api.openai.com/v1";
   var DEFAULT_TIMEOUT = 6e4;
   var KEEPALIVE_INTERVAL = 25e3;
   var LOG_LEVELS3 = {
@@ -1166,11 +1170,13 @@
       apiKey,
       model,
       messages,
+      baseUrl,
       maxTokens,
       timeout = DEFAULT_TIMEOUT,
       stream = true,
       signal
     } = options;
+    const effectiveBaseUrl = baseUrl?.trim() || OPENAI_DEFAULT_BASE;
     if (!apiKey) {
       return { success: false, error: "API key is required", errorCode: "MISSING_API_KEY" };
     }
@@ -1196,8 +1202,8 @@
     }
     startKeepalive();
     try {
-      log3("info", `Calling OpenAI API with model: ${model}`);
-      const response = await fetch(`${OPENAI_API_BASE}/chat/completions`, {
+      log3("info", `Calling OpenAI API with model: ${model}, baseUrl: ${effectiveBaseUrl}`);
+      const response = await fetch(`${effectiveBaseUrl}/chat/completions`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -1355,7 +1361,7 @@
 
   // src/services/gemini-client.ts
   var LOG_PREFIX4 = "[Gemini Client]";
-  var GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta";
+  var GEMINI_DEFAULT_BASE = "https://generativelanguage.googleapis.com/v1beta";
   var DEFAULT_TIMEOUT2 = 6e4;
   var KEEPALIVE_INTERVAL2 = 25e3;
   var LOG_LEVELS4 = {
@@ -1394,6 +1400,7 @@
     const {
       apiKey,
       model,
+      baseUrl,
       systemInstruction,
       contents,
       maxOutputTokens,
@@ -1401,6 +1408,7 @@
       stream = true,
       signal
     } = options;
+    const effectiveBaseUrl = baseUrl?.trim() || GEMINI_DEFAULT_BASE;
     if (!apiKey) {
       return { success: false, error: "API key is required", errorCode: "MISSING_API_KEY" };
     }
@@ -1428,9 +1436,9 @@
     }
     startKeepalive2();
     const endpoint = stream ? "streamGenerateContent" : "generateContent";
-    const url = `${GEMINI_API_BASE}/models/${model}:${endpoint}?key=${apiKey}`;
+    const url = `${effectiveBaseUrl}/models/${model}:${endpoint}?key=${apiKey}`;
     try {
-      log4("info", `Calling Gemini API with model: ${model}`);
+      log4("info", `Calling Gemini API with model: ${model}, baseUrl: ${effectiveBaseUrl}`);
       const response = await fetch(url, {
         method: "POST",
         headers: {
@@ -1777,6 +1785,7 @@ ${vttContent}`;
       provider,
       apiKey,
       model,
+      baseUrl,
       courseContext,
       timeout = DEFAULT_TIMEOUT3,
       maxRetries = DEFAULT_MAX_RETRIES,
@@ -1838,7 +1847,8 @@ ${vttContent}`;
         model,
         timeout,
         maxRetries,
-        signal
+        signal,
+        baseUrl
       );
       if (!result.success || !result.vttFile) {
         return {
@@ -1875,7 +1885,7 @@ ${vttContent}`;
       durationMs
     };
   }
-  async function translateBatchWithRetry(originalBatch, batchVttContent, systemPrompt, provider, apiKey, model, timeout, maxRetries, signal) {
+  async function translateBatchWithRetry(originalBatch, batchVttContent, systemPrompt, provider, apiKey, model, timeout, maxRetries, signal, baseUrl) {
     const userPrompt = buildUserPrompt(batchVttContent);
     let lastError;
     let lastErrorCode;
@@ -1894,7 +1904,8 @@ ${vttContent}`;
         systemPrompt,
         userPrompt,
         timeout,
-        signal
+        signal,
+        baseUrl
       );
       if (!response.success || !response.content) {
         lastError = response.error;
@@ -1931,11 +1942,12 @@ ${vttContent}`;
       errorCode: lastErrorCode || "TRANSLATION_FAILED"
     };
   }
-  async function callLLM(provider, apiKey, model, systemPrompt, userPrompt, timeout, signal) {
+  async function callLLM(provider, apiKey, model, systemPrompt, userPrompt, timeout, signal, baseUrl) {
     if (provider === "openai") {
       return chatCompletion({
         apiKey,
         model,
+        baseUrl,
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt }
@@ -1951,6 +1963,7 @@ ${vttContent}`;
       return generateContent({
         apiKey,
         model,
+        baseUrl,
         systemInstruction,
         contents,
         timeout,
@@ -2275,10 +2288,12 @@ ${vttContent}`;
         };
       }
       log6("Preloading translation:", `${courseId}-${lectureId}`);
+      const baseUrl = settings.provider === "openai" ? settings.openaiBaseUrl : settings.geminiBaseUrl;
       const result = await translateVTT(originalVtt, {
         provider: settings.provider,
         apiKey: settings.apiKey,
         model: settings.model,
+        baseUrl: baseUrl || void 0,
         courseContext: {
           courseName: request.courseName,
           sectionName: request.sectionName,
@@ -2467,10 +2482,12 @@ ${vttContent}`;
       });
     }
     sendProgress(tabId, taskId, 0);
+    const baseUrl = provider === "openai" ? settings.openaiBaseUrl : settings.geminiBaseUrl;
     const result = await translateVTT(vttContent, {
       provider,
       apiKey,
       model,
+      baseUrl: baseUrl || void 0,
       courseContext: {
         courseName: payload?.courseName,
         sectionName: payload?.sectionName,

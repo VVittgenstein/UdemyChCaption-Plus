@@ -1773,6 +1773,70 @@
         "chrome-store",
         "release"
       ]
+    },
+    "T-20251225-act-021-custom-api-base": {
+      "execution_order": 21,
+      "execution_layer": 10,
+      "parallel_with": [],
+      "seed_id": "ACT-021",
+      "title": "支持自定义 API Base URL",
+      "type": "feature",
+      "summary": "添加自定义 API 端点支持，允许用户使用第三方 OpenAI/Gemini 兼容服务（如 ohmygpt、one-api 等代理服务）。",
+      "acceptance_draft": [
+        "用户可在设置中填写自定义 OpenAI Base URL",
+        "用户可在设置中填写自定义 Gemini Base URL",
+        "留空时使用官方默认端点（向后兼容）",
+        "使用自定义端点时跳过 API Key 格式验证（sk- 前缀检查）",
+        "验证时调用自定义端点的 /models 接口确认连通性",
+        "翻译功能正常使用自定义端点",
+        "使用自定义端点时自动申请该域名 Host 权限（无需手动改 manifest）"
+      ],
+      "lane": "now",
+      "priority_suggested": "P1",
+      "status": "completed",
+      "status_note": "已完成：修改 types/index.ts、settings-manager.ts、openai-client.ts、gemini-client.ts、translator.ts、popup.html/css/ts，添加可折叠的自定义端点设置区域，支持 OpenAI 和 Gemini 双端点配置。Code Review P1 修复：在 service-worker.ts 和 preloader.ts 中添加 baseUrl 参数传递，确保自定义端点配置生效。补充修复：为避免 MV3 host_permissions 限制导致自定义端点请求 Failed to fetch，在 manifest 中加入官方端点 host_permissions + optional_host_permissions，并在 Popup「保存并验证」时自动请求目标域名 Host 权限；移除无效的 permissions 权限声明（Chrome 提示 unknown）。",
+      "dependencies": [
+        "T-20251223-act-020-chrome-store-prep"
+      ],
+      "blocked": false,
+      "blocked_by": [],
+      "unblock_plan": "",
+      "estimate_h": 4,
+      "interfaces_touched": [
+        "types",
+        "storage",
+        "openai-client",
+        "gemini-client",
+        "translator",
+        "popup-ui",
+        "service-worker",
+        "preloader",
+        "manifest"
+      ],
+      "artifacts": [
+        "src/types/index.ts",
+        "src/storage/settings-manager.ts",
+        "src/services/openai-client.ts",
+        "src/services/gemini-client.ts",
+        "src/services/translator.ts",
+        "src/popup/popup.html",
+        "src/popup/popup.css",
+        "src/popup/popup.ts",
+        "src/background/service-worker.ts",
+        "src/services/preloader.ts",
+        "manifest.json",
+        "Compact/Compact-T-20251225-act-021-custom-api-base-2025-12-25-T130500Z.md"
+      ],
+      "citations": [],
+      "created_at": "2025-12-25T12:00:00Z",
+      "updated_at": "2025-12-25T22:03:06Z",
+      "owner": "claude-code",
+      "tags": [
+        "seed:ACT-021",
+        "feature",
+        "api",
+        "third-party-support"
+      ]
     }
   },
   "questions_for_human": [

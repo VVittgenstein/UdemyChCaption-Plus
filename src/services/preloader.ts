@@ -362,10 +362,13 @@ export async function preloadLecture(request: PreloadRequest): Promise<PreloadRe
 
     log('Preloading translation:', `${courseId}-${lectureId}`);
 
+    const baseUrl = settings.provider === 'openai' ? settings.openaiBaseUrl : settings.geminiBaseUrl;
+
     const result = await translateVTT(originalVtt, {
       provider: settings.provider,
       apiKey: settings.apiKey,
       model: settings.model,
+      baseUrl: baseUrl || undefined,
       courseContext: {
         courseName: request.courseName,
         sectionName: request.sectionName,

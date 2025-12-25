@@ -42,6 +42,8 @@ export interface GeminiRequestOptions {
   apiKey: string;
   /** Model to use */
   model: string;
+  /** Custom API base URL (empty/undefined = use official) */
+  baseUrl?: string;
   /** System instruction */
   systemInstruction?: string;
   /** Conversation contents */
@@ -103,7 +105,7 @@ interface GeminiStreamChunk {
 // ============================================
 
 const LOG_PREFIX = '[Gemini Client]';
-const GEMINI_API_BASE = 'https://generativelanguage.googleapis.com/v1beta';
+const GEMINI_DEFAULT_BASE = 'https://generativelanguage.googleapis.com/v1beta';
 const DEFAULT_TIMEOUT = 60000; // 60 seconds
 const KEEPALIVE_INTERVAL = 25000; // 25 seconds (under 30s SW idle timeout)
 
@@ -186,6 +188,7 @@ export async function generateContent(options: GeminiRequestOptions): Promise<Ge
   const {
     apiKey,
     model,
+    baseUrl,
     systemInstruction,
     contents,
     maxOutputTokens,
@@ -193,6 +196,9 @@ export async function generateContent(options: GeminiRequestOptions): Promise<Ge
     stream = true,
     signal,
   } = options;
+
+  // Determine effective base URL
+  const effectiveBaseUrl = baseUrl?.trim() || GEMINI_DEFAULT_BASE;
 
   // Validate inputs
   if (!apiKey) {
@@ -236,10 +242,10 @@ export async function generateContent(options: GeminiRequestOptions): Promise<Ge
 
   // Determine endpoint based on streaming
   const endpoint = stream ? 'streamGenerateContent' : 'generateContent';
-  const url = `${GEMINI_API_BASE}/models/${model}:${endpoint}?key=${apiKey}`;
+  const url = `${effectiveBaseUrl}/models/${model}:${endpoint}?key=${apiKey}`;
 
   try {
-    log('info', `Calling Gemini API with model: ${model}`);
+    log('info', `Calling Gemini API with model: ${model}, baseUrl: ${effectiveBaseUrl}`);
 
     const response = await fetch(url, {
       method: 'POST',
@@ -463,16 +469,22 @@ function extractJsonObjects(buffer: string): { objects: string[]; remaining: str
  * Validate a Gemini API key by making a test request
  *
  * @param apiKey - API key to validate
+ * @param baseUrl - Custom API base URL (optional)
  * @returns Validation result
  */
-export async function validateApiKey(apiKey: string): Promise<{
+export async function validateApiKey(
+  apiKey: string,
+  baseUrl?: string
+): Promise<{
   valid: boolean;
   error?: string;
   models?: string[];
 }> {
+  const effectiveBaseUrl = baseUrl?.trim() || GEMINI_DEFAULT_BASE;
+
   try {
     const response = await fetch(
-      `${GEMINI_API_BASE}/models?key=${apiKey}`,
+      `${effectiveBaseUrl}/models?key=${apiKey}`,
       { method: 'GET' }
     );
 

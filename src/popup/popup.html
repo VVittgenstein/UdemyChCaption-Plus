@@ -74,6 +74,42 @@
         <p class="form-hint">API Key 仅存储在本地，不会上传至任何服务器</p>
       </div>
 
+      <!-- Advanced API Endpoint Settings (Collapsible) -->
+      <div class="collapsible-section">
+        <button type="button" id="toggle-api-advanced" class="collapsible-toggle">
+          <span class="collapsible-text">自定义 API 端点</span>
+          <svg class="collapsible-arrow" viewBox="0 0 24 24" width="16" height="16">
+            <path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/>
+          </svg>
+        </button>
+        <div id="api-advanced-content" class="collapsible-content hidden">
+          <!-- OpenAI Base URL -->
+          <div class="form-group nested">
+            <label class="form-label" for="openaiBaseUrl">OpenAI Base URL</label>
+            <input
+              type="url"
+              id="openaiBaseUrl"
+              class="form-input"
+              placeholder="https://api.openai.com/v1"
+              autocomplete="off"
+            >
+            <p class="form-hint">留空使用官方端点，第三方服务请填写完整 URL</p>
+          </div>
+          <!-- Gemini Base URL -->
+          <div class="form-group nested">
+            <label class="form-label" for="geminiBaseUrl">Gemini Base URL</label>
+            <input
+              type="url"
+              id="geminiBaseUrl"
+              class="form-input"
+              placeholder="https://generativelanguage.googleapis.com/v1beta"
+              autocomplete="off"
+            >
+            <p class="form-hint">留空使用官方端点，第三方服务请填写完整 URL</p>
+          </div>
+        </div>
+      </div>
+
       <!-- Model Selection -->
       <div class="form-group">
         <label class="form-label" for="model">模型</label>

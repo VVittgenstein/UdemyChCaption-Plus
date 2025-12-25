@@ -41,19 +41,13 @@ const DEFAULT_SETTINGS: UserSettings = {
   provider: 'openai',
   apiKey: '',
   model: 'gpt-5.1',
+  openaiBaseUrl: '',
+  geminiBaseUrl: '',
   enabled: true,
   autoTranslate: true,
   preloadEnabled: true,
   showCostEstimate: true,
   showLoadingIndicator: true,
-};
-
-/**
- * API endpoints for validation
- */
-const API_ENDPOINTS = {
-  openai: 'https://api.openai.com/v1/models',
-  gemini: 'https://generativelanguage.googleapis.com/v1beta/models',
 };
 
 // ============================================
@@ -108,6 +102,11 @@ interface DOMElements {
   apiKey: HTMLInputElement;
   model: HTMLSelectElement;
   toggleApiKeyVisibility: HTMLButtonElement;
+  // Custom API endpoints
+  toggleApiAdvanced: HTMLButtonElement;
+  apiAdvancedContent: HTMLDivElement;
+  openaiBaseUrl: HTMLInputElement;
+  geminiBaseUrl: HTMLInputElement;
   // Buttons
   saveBtn: HTMLButtonElement;
   retranslateBtn: HTMLButtonElement;
@@ -239,11 +238,62 @@ async function notifySettingsChanged(settings: UserSettings): Promise<void> {
 // ============================================
 
 /**
+ * Convert a base URL to a Chrome "host permission" match pattern.
+ *
+ * Note: Chrome match patterns do not include ports; they match by scheme + host + path.
+ */
+function baseUrlToHostPermissionPattern(baseUrl: string): string | null {
+  const trimmed = baseUrl.trim();
+  if (!trimmed) return null;
+
+  try {
+    const url = new URL(trimmed);
+    if (url.protocol !== 'https:' && url.protocol !== 'http:') return null;
+    return `${url.protocol}//${url.hostname}/*`;
+  } catch {
+    return null;
+  }
+}
+
+async function ensureHostPermissionForBaseUrl(baseUrl: string): Promise<{ ok: boolean; error?: string }> {
+  const pattern = baseUrlToHostPermissionPattern(baseUrl);
+  if (!pattern) return { ok: true };
+
+  if (typeof chrome === 'undefined' || !chrome.permissions?.contains || !chrome.permissions?.request) {
+    return { ok: true };
+  }
+
+  const alreadyGranted = await new Promise<boolean>((resolve) => {
+    chrome.permissions.contains({ origins: [pattern] }, (result) => resolve(!!result));
+  });
+
+  if (alreadyGranted) {
+    return { ok: true };
+  }
+
+  const granted = await new Promise<boolean>((resolve) => {
+    chrome.permissions.request({ origins: [pattern] }, (result) => resolve(!!result));
+  });
+
+  if (granted) {
+    return { ok: true };
+  }
+
+  const endpoint = pattern.replace(/\/\*$/, '');
+  return { ok: false, error: `未授权访问该端点：${endpoint}` };
+}
+
+/**
  * Validate OpenAI API key
  */
-async function validateOpenAIKey(apiKey: string): Promise<{ valid: boolean; error?: string }> {
+async function validateOpenAIKey(
+  apiKey: string,
+  baseUrl?: string
+): Promise<{ valid: boolean; error?: string }> {
+  const effectiveBaseUrl = baseUrl?.trim() || 'https://api.openai.com/v1';
+
   try {
-    const response = await fetch(API_ENDPOINTS.openai, {
+    const response = await fetch(`${effectiveBaseUrl}/models`, {
       method: 'GET',
       headers: {
         Authorization: `Bearer ${apiKey}`,
@@ -268,9 +318,12 @@ async function validateOpenAIKey(apiKey: string): Promise<{ valid: boolean; erro
       error: data.error?.message || `验证失败 (${response.status})`,
     };
   } catch (error) {
+    const hasCustomUrl = !!baseUrl?.trim();
     return {
       valid: false,
-      error: error instanceof Error ? error.message : '网络错误，请检查网络连接',
+      error: hasCustomUrl
+        ? '无法连接到自定义端点，请检查 URL 是否正确'
+        : (error instanceof Error ? error.message : '网络错误，请检查网络连接'),
     };
   }
 }
@@ -278,9 +331,14 @@ async function validateOpenAIKey(apiKey: string): Promise<{ valid: boolean; erro
 /**
  * Validate Gemini API key
  */
-async function validateGeminiKey(apiKey: string): Promise<{ valid: boolean; error?: string }> {
+async function validateGeminiKey(
+  apiKey: string,
+  baseUrl?: string
+): Promise<{ valid: boolean; error?: string }> {
+  const effectiveBaseUrl = baseUrl?.trim() || 'https://generativelanguage.googleapis.com/v1beta';
+
   try {
-    const response = await fetch(`${API_ENDPOINTS.gemini}?key=${apiKey}`, {
+    const response = await fetch(`${effectiveBaseUrl}/models?key=${apiKey}`, {
       method: 'GET',
     });
 
@@ -302,9 +360,12 @@ async function validateGeminiKey(apiKey: string): Promise<{ valid: boolean; erro
       error: data.error?.message || `验证失败 (${response.status})`,
     };
   } catch (error) {
+    const hasCustomUrl = !!baseUrl?.trim();
     return {
       valid: false,
-      error: error instanceof Error ? error.message : '网络错误，请检查网络连接',
+      error: hasCustomUrl
+        ? '无法连接到自定义端点，请检查 URL 是否正确'
+        : (error instanceof Error ? error.message : '网络错误，请检查网络连接'),
     };
   }
 }
@@ -314,21 +375,24 @@ async function validateGeminiKey(apiKey: string): Promise<{ valid: boolean; erro
  */
 async function validateApiKey(
   provider: 'openai' | 'gemini',
-  apiKey: string
+  apiKey: string,
+  customBaseUrl?: string
 ): Promise<{ valid: boolean; error?: string }> {
   if (!apiKey.trim()) {
     return { valid: false, error: '请输入 API Key' };
   }
 
+  const hasCustomUrl = !!customBaseUrl?.trim();
+
   if (provider === 'openai') {
-    // Basic format check for OpenAI keys
-    if (!apiKey.startsWith('sk-')) {
+    // Only check sk- prefix when using official endpoint
+    if (!hasCustomUrl && !apiKey.startsWith('sk-')) {
       return { valid: false, error: 'OpenAI API Key 应以 "sk-" 开头' };
     }
-    return validateOpenAIKey(apiKey);
+    return validateOpenAIKey(apiKey, customBaseUrl);
   }
 
-  return validateGeminiKey(apiKey);
+  return validateGeminiKey(apiKey, customBaseUrl);
 }
 
 // ============================================
@@ -346,6 +410,10 @@ function getDOMElements(): DOMElements {
     apiKey: document.getElementById('apiKey') as HTMLInputElement,
     model: document.getElementById('model') as HTMLSelectElement,
     toggleApiKeyVisibility: document.getElementById('toggle-apikey-visibility') as HTMLButtonElement,
+    toggleApiAdvanced: document.getElementById('toggle-api-advanced') as HTMLButtonElement,
+    apiAdvancedContent: document.getElementById('api-advanced-content') as HTMLDivElement,
+    openaiBaseUrl: document.getElementById('openaiBaseUrl') as HTMLInputElement,
+    geminiBaseUrl: document.getElementById('geminiBaseUrl') as HTMLInputElement,
     saveBtn: document.getElementById('save-btn') as HTMLButtonElement,
     retranslateBtn: document.getElementById('retranslate-btn') as HTMLButtonElement,
     statusMessage: document.getElementById('status-message') as HTMLDivElement,
@@ -512,6 +580,8 @@ function populateForm(settings: UserSettings): void {
   updateModelOptions(settings.provider);
   elements.model.value = settings.model;
   elements.apiKey.value = settings.apiKey;
+  elements.openaiBaseUrl.value = settings.openaiBaseUrl || '';
+  elements.geminiBaseUrl.value = settings.geminiBaseUrl || '';
   elements.autoTranslate.checked = settings.autoTranslate;
   elements.preloadEnabled.checked = settings.preloadEnabled;
   elements.showCostEstimate.checked = settings.showCostEstimate;
@@ -529,6 +599,8 @@ function getFormValues(): UserSettings {
     provider: elements.provider.value as 'openai' | 'gemini',
     apiKey: elements.apiKey.value,
     model: elements.model.value,
+    openaiBaseUrl: elements.openaiBaseUrl.value.trim(),
+    geminiBaseUrl: elements.geminiBaseUrl.value.trim(),
     autoTranslate: elements.autoTranslate.checked,
     preloadEnabled: elements.preloadEnabled.checked,
     showCostEstimate: elements.showCostEstimate.checked,
@@ -547,6 +619,21 @@ function handleProviderChange(): void {
   const provider = elements.provider.value;
   updateModelOptions(provider);
   hideValidationResult();
+}
+
+/**
+ * Handle API advanced settings toggle
+ */
+function handleApiAdvancedToggle(): void {
+  const isHidden = elements.apiAdvancedContent.classList.contains('hidden');
+
+  if (isHidden) {
+    elements.apiAdvancedContent.classList.remove('hidden');
+    elements.toggleApiAdvanced.classList.add('expanded');
+  } else {
+    elements.apiAdvancedContent.classList.add('hidden');
+    elements.toggleApiAdvanced.classList.remove('expanded');
+  }
 }
 
 /**
@@ -625,9 +712,24 @@ async function handleFormSubmit(event: Event): Promise<void> {
 
   const settings = getFormValues();
 
+  // Get the appropriate base URL for the current provider
+  const customBaseUrl = settings.provider === 'openai'
+    ? settings.openaiBaseUrl
+    : settings.geminiBaseUrl;
+  const effectiveBaseUrl = customBaseUrl || (settings.provider === 'openai'
+    ? 'https://api.openai.com/v1'
+    : 'https://generativelanguage.googleapis.com/v1beta');
+
   try {
-    // Validate API key
-    const validation = await validateApiKey(settings.provider, settings.apiKey);
+    // Ensure host permission for the API endpoint (required for service worker fetch)
+    const permission = await ensureHostPermissionForBaseUrl(effectiveBaseUrl);
+    if (!permission.ok) {
+      showValidationResult(false, permission.error || '未授权访问该端点');
+      return;
+    }
+
+    // Validate API key with custom URL
+    const validation = await validateApiKey(settings.provider, settings.apiKey, customBaseUrl);
 
     if (validation.valid) {
       // Save settings
@@ -865,6 +967,7 @@ async function init(): Promise<void> {
   // Event listeners
   elements.provider.addEventListener('change', handleProviderChange);
   elements.toggleApiKeyVisibility.addEventListener('click', handleApiKeyVisibilityToggle);
+  elements.toggleApiAdvanced.addEventListener('click', handleApiAdvancedToggle);
   elements.enabled.addEventListener('change', handleEnabledChange);
   elements.settingsForm.addEventListener('submit', handleFormSubmit);
 

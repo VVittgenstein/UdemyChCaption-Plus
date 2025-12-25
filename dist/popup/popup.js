@@ -19,15 +19,13 @@
     provider: "openai",
     apiKey: "",
     model: "gpt-5.1",
+    openaiBaseUrl: "",
+    geminiBaseUrl: "",
     enabled: true,
     autoTranslate: true,
     preloadEnabled: true,
     showCostEstimate: true,
     showLoadingIndicator: true
-  };
-  var API_ENDPOINTS = {
-    openai: "https://api.openai.com/v1/models",
-    gemini: "https://generativelanguage.googleapis.com/v1beta/models"
   };
   var SESSION_COST_KEY = "udemy-caption-plus:session-cost";
   var DEFAULT_SESSION_COST_STATE = {
@@ -116,9 +114,42 @@
       }
     }
   }
-  async function validateOpenAIKey(apiKey) {
+  function baseUrlToHostPermissionPattern(baseUrl) {
+    const trimmed = baseUrl.trim();
+    if (!trimmed) return null;
     try {
-      const response = await fetch(API_ENDPOINTS.openai, {
+      const url = new URL(trimmed);
+      if (url.protocol !== "https:" && url.protocol !== "http:") return null;
+      return `${url.protocol}//${url.hostname}/*`;
+    } catch {
+      return null;
+    }
+  }
+  async function ensureHostPermissionForBaseUrl(baseUrl) {
+    const pattern = baseUrlToHostPermissionPattern(baseUrl);
+    if (!pattern) return { ok: true };
+    if (typeof chrome === "undefined" || !chrome.permissions?.contains || !chrome.permissions?.request) {
+      return { ok: true };
+    }
+    const alreadyGranted = await new Promise((resolve) => {
+      chrome.permissions.contains({ origins: [pattern] }, (result) => resolve(!!result));
+    });
+    if (alreadyGranted) {
+      return { ok: true };
+    }
+    const granted = await new Promise((resolve) => {
+      chrome.permissions.request({ origins: [pattern] }, (result) => resolve(!!result));
+    });
+    if (granted) {
+      return { ok: true };
+    }
+    const endpoint = pattern.replace(/\/\*$/, "");
+    return { ok: false, error: `\u672A\u6388\u6743\u8BBF\u95EE\u8BE5\u7AEF\u70B9\uFF1A${endpoint}` };
+  }
+  async function validateOpenAIKey(apiKey, baseUrl) {
+    const effectiveBaseUrl = baseUrl?.trim() || "https://api.openai.com/v1";
+    try {
+      const response = await fetch(`${effectiveBaseUrl}/models`, {
         method: "GET",
         headers: {
           Authorization: `Bearer ${apiKey}`
@@ -139,15 +170,17 @@
         error: data.error?.message || `\u9A8C\u8BC1\u5931\u8D25 (${response.status})`
       };
     } catch (error) {
+      const hasCustomUrl = !!baseUrl?.trim();
       return {
         valid: false,
-        error: error instanceof Error ? error.message : "\u7F51\u7EDC\u9519\u8BEF\uFF0C\u8BF7\u68C0\u67E5\u7F51\u7EDC\u8FDE\u63A5"
+        error: hasCustomUrl ? "\u65E0\u6CD5\u8FDE\u63A5\u5230\u81EA\u5B9A\u4E49\u7AEF\u70B9\uFF0C\u8BF7\u68C0\u67E5 URL \u662F\u5426\u6B63\u786E" : error instanceof Error ? error.message : "\u7F51\u7EDC\u9519\u8BEF\uFF0C\u8BF7\u68C0\u67E5\u7F51\u7EDC\u8FDE\u63A5"
       };
     }
   }
-  async function validateGeminiKey(apiKey) {
+  async function validateGeminiKey(apiKey, baseUrl) {
+    const effectiveBaseUrl = baseUrl?.trim() || "https://generativelanguage.googleapis.com/v1beta";
     try {
-      const response = await fetch(`${API_ENDPOINTS.gemini}?key=${apiKey}`, {
+      const response = await fetch(`${effectiveBaseUrl}/models?key=${apiKey}`, {
         method: "GET"
       });
       if (response.ok) {
@@ -165,23 +198,25 @@
         error: data.error?.message || `\u9A8C\u8BC1\u5931\u8D25 (${response.status})`
       };
     } catch (error) {
+      const hasCustomUrl = !!baseUrl?.trim();
       return {
         valid: false,
-        error: error instanceof Error ? error.message : "\u7F51\u7EDC\u9519\u8BEF\uFF0C\u8BF7\u68C0\u67E5\u7F51\u7EDC\u8FDE\u63A5"
+        error: hasCustomUrl ? "\u65E0\u6CD5\u8FDE\u63A5\u5230\u81EA\u5B9A\u4E49\u7AEF\u70B9\uFF0C\u8BF7\u68C0\u67E5 URL \u662F\u5426\u6B63\u786E" : error instanceof Error ? error.message : "\u7F51\u7EDC\u9519\u8BEF\uFF0C\u8BF7\u68C0\u67E5\u7F51\u7EDC\u8FDE\u63A5"
       };
     }
   }
-  async function validateApiKey(provider, apiKey) {
+  async function validateApiKey(provider, apiKey, customBaseUrl) {
     if (!apiKey.trim()) {
       return { valid: false, error: "\u8BF7\u8F93\u5165 API Key" };
     }
+    const hasCustomUrl = !!customBaseUrl?.trim();
     if (provider === "openai") {
-      if (!apiKey.startsWith("sk-")) {
+      if (!hasCustomUrl && !apiKey.startsWith("sk-")) {
         return { valid: false, error: 'OpenAI API Key \u5E94\u4EE5 "sk-" \u5F00\u5934' };
       }
-      return validateOpenAIKey(apiKey);
+      return validateOpenAIKey(apiKey, customBaseUrl);
     }
-    return validateGeminiKey(apiKey);
+    return validateGeminiKey(apiKey, customBaseUrl);
   }
   function getDOMElements() {
     return {
@@ -191,6 +226,10 @@
       apiKey: document.getElementById("apiKey"),
       model: document.getElementById("model"),
       toggleApiKeyVisibility: document.getElementById("toggle-apikey-visibility"),
+      toggleApiAdvanced: document.getElementById("toggle-api-advanced"),
+      apiAdvancedContent: document.getElementById("api-advanced-content"),
+      openaiBaseUrl: document.getElementById("openaiBaseUrl"),
+      geminiBaseUrl: document.getElementById("geminiBaseUrl"),
       saveBtn: document.getElementById("save-btn"),
       retranslateBtn: document.getElementById("retranslate-btn"),
       statusMessage: document.getElementById("status-message"),
@@ -312,6 +351,8 @@
     updateModelOptions(settings.provider);
     elements.model.value = settings.model;
     elements.apiKey.value = settings.apiKey;
+    elements.openaiBaseUrl.value = settings.openaiBaseUrl || "";
+    elements.geminiBaseUrl.value = settings.geminiBaseUrl || "";
     elements.autoTranslate.checked = settings.autoTranslate;
     elements.preloadEnabled.checked = settings.preloadEnabled;
     elements.showCostEstimate.checked = settings.showCostEstimate;
@@ -325,6 +366,8 @@
       provider: elements.provider.value,
       apiKey: elements.apiKey.value,
       model: elements.model.value,
+      openaiBaseUrl: elements.openaiBaseUrl.value.trim(),
+      geminiBaseUrl: elements.geminiBaseUrl.value.trim(),
       autoTranslate: elements.autoTranslate.checked,
       preloadEnabled: elements.preloadEnabled.checked,
       showCostEstimate: elements.showCostEstimate.checked,
@@ -335,6 +378,16 @@
     const provider = elements.provider.value;
     updateModelOptions(provider);
     hideValidationResult();
+  }
+  function handleApiAdvancedToggle() {
+    const isHidden = elements.apiAdvancedContent.classList.contains("hidden");
+    if (isHidden) {
+      elements.apiAdvancedContent.classList.remove("hidden");
+      elements.toggleApiAdvanced.classList.add("expanded");
+    } else {
+      elements.apiAdvancedContent.classList.add("hidden");
+      elements.toggleApiAdvanced.classList.remove("expanded");
+    }
   }
   function handleApiKeyVisibilityToggle() {
     const isPassword = elements.apiKey.type === "password";
@@ -388,8 +441,15 @@
     hideValidationResult();
     setButtonLoading(true);
     const settings = getFormValues();
+    const customBaseUrl = settings.provider === "openai" ? settings.openaiBaseUrl : settings.geminiBaseUrl;
+    const effectiveBaseUrl = customBaseUrl || (settings.provider === "openai" ? "https://api.openai.com/v1" : "https://generativelanguage.googleapis.com/v1beta");
     try {
-      const validation = await validateApiKey(settings.provider, settings.apiKey);
+      const permission = await ensureHostPermissionForBaseUrl(effectiveBaseUrl);
+      if (!permission.ok) {
+        showValidationResult(false, permission.error || "\u672A\u6388\u6743\u8BBF\u95EE\u8BE5\u7AEF\u70B9");
+        return;
+      }
+      const validation = await validateApiKey(settings.provider, settings.apiKey, customBaseUrl);
       if (validation.valid) {
         await saveSettings(settings);
         await notifySettingsChanged(settings);
@@ -568,6 +628,7 @@
     }
     elements.provider.addEventListener("change", handleProviderChange);
     elements.toggleApiKeyVisibility.addEventListener("click", handleApiKeyVisibilityToggle);
+    elements.toggleApiAdvanced.addEventListener("click", handleApiAdvancedToggle);
     elements.enabled.addEventListener("change", handleEnabledChange);
     elements.settingsForm.addEventListener("submit", handleFormSubmit);
     elements.autoTranslate.addEventListener(

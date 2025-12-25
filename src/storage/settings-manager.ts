@@ -20,6 +20,8 @@ export const DEFAULT_SETTINGS: UserSettings = {
   provider: 'openai',
   apiKey: '',
   model: 'gpt-5.1',
+  openaiBaseUrl: '',  // Empty = use official https://api.openai.com/v1
+  geminiBaseUrl: '',  // Empty = use official https://generativelanguage.googleapis.com/v1beta
   enabled: true,
   autoTranslate: true,
   preloadEnabled: true,

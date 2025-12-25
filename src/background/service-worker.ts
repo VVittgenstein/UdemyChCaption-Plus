@@ -146,10 +146,13 @@ async function handleTranslateSubtitle(sender: chrome.runtime.MessageSender, pay
 
   sendProgress(tabId, taskId, 0);
 
+  const baseUrl = provider === 'openai' ? settings.openaiBaseUrl : settings.geminiBaseUrl;
+
   const result = await translateVTT(vttContent, {
     provider,
     apiKey,
     model,
+    baseUrl: baseUrl || undefined,
     courseContext: {
       courseName: payload?.courseName,
       sectionName: payload?.sectionName,

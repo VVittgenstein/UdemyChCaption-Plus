@@ -36,6 +36,8 @@ export interface TranslationOptions {
   apiKey: string;
   /** Model name */
   model: string;
+  /** Custom API base URL (optional) */
+  baseUrl?: string;
   /** Course context for better terminology */
   courseContext?: CourseContext;
   /** Request timeout in milliseconds (default: 120000 for longer VTT) */
@@ -388,6 +390,7 @@ export async function translateVTT(
     provider,
     apiKey,
     model,
+    baseUrl,
     courseContext,
     timeout = DEFAULT_TIMEOUT,
     maxRetries = DEFAULT_MAX_RETRIES,
@@ -466,7 +469,8 @@ export async function translateVTT(
       model,
       timeout,
       maxRetries,
-      signal
+      signal,
+      baseUrl
     );
 
     if (!result.success || !result.vttFile) {
@@ -525,7 +529,8 @@ async function translateBatchWithRetry(
   model: string,
   timeout: number,
   maxRetries: number,
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  baseUrl?: string
 ): Promise<{
   success: boolean;
   vttFile?: VTTFile;
@@ -559,7 +564,8 @@ async function translateBatchWithRetry(
       systemPrompt,
       userPrompt,
       timeout,
-      signal
+      signal,
+      baseUrl
     );
 
     if (!response.success || !response.content) {
@@ -623,7 +629,8 @@ async function callLLM(
   systemPrompt: string,
   userPrompt: string,
   timeout: number,
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  baseUrl?: string
 ): Promise<{
   success: boolean;
   content?: string;
@@ -638,6 +645,7 @@ async function callLLM(
     return chatCompletion({
       apiKey,
       model,
+      baseUrl,
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userPrompt },
@@ -655,6 +663,7 @@ async function callLLM(
     return generateContent({
       apiKey,
       model,
+      baseUrl,
       systemInstruction,
       contents,
       timeout,

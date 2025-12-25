@@ -515,6 +515,62 @@ body {
   pointer-events: none;
 }
 
+/* Collapsible Section for Custom API Endpoints */
+.collapsible-section {
+  border: 1px solid #eee;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.collapsible-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 10px 12px;
+  background: #fafafa;
+  border: none;
+  cursor: pointer;
+  font-size: 13px;
+  color: #666;
+  transition: background-color 0.2s;
+}
+
+.collapsible-toggle:hover {
+  background: #f0f0f0;
+}
+
+.collapsible-text {
+  font-weight: 500;
+}
+
+.collapsible-arrow {
+  fill: currentColor;
+  transition: transform 0.2s;
+}
+
+.collapsible-toggle.expanded .collapsible-arrow {
+  transform: rotate(180deg);
+}
+
+.collapsible-content {
+  padding: 12px;
+  border-top: 1px solid #eee;
+  background: #fff;
+}
+
+.collapsible-content.hidden {
+  display: none;
+}
+
+.form-group.nested {
+  margin-bottom: 12px;
+}
+
+.form-group.nested:last-child {
+  margin-bottom: 0;
+}
+
 /* Responsive adjustments */
 @media (prefers-color-scheme: dark) {
   /* Optional: dark mode support */

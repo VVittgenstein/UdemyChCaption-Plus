@@ -37,6 +37,8 @@ export interface OpenAIRequestOptions {
   model: string;
   /** Messages for the conversation */
   messages: OpenAIMessage[];
+  /** Custom API base URL (empty/undefined = use official) */
+  baseUrl?: string;
   /** Maximum tokens in response */
   maxTokens?: number;
   /** Request timeout in milliseconds (default 60000) */
@@ -103,7 +105,7 @@ interface StreamChunk {
 // ============================================
 
 const LOG_PREFIX = '[OpenAI Client]';
-const OPENAI_API_BASE = 'https://api.openai.com/v1';
+const OPENAI_DEFAULT_BASE = 'https://api.openai.com/v1';
 const DEFAULT_TIMEOUT = 60000; // 60 seconds
 const KEEPALIVE_INTERVAL = 25000; // 25 seconds (under 30s SW idle timeout)
 
@@ -187,11 +189,15 @@ export async function chatCompletion(options: OpenAIRequestOptions): Promise<Ope
     apiKey,
     model,
     messages,
+    baseUrl,
     maxTokens,
     timeout = DEFAULT_TIMEOUT,
     stream = true,
     signal,
   } = options;
+
+  // Determine effective base URL
+  const effectiveBaseUrl = baseUrl?.trim() || OPENAI_DEFAULT_BASE;
 
   // Validate inputs
   if (!apiKey) {
@@ -231,9 +237,9 @@ export async function chatCompletion(options: OpenAIRequestOptions): Promise<Ope
   startKeepalive();
 
   try {
-    log('info', `Calling OpenAI API with model: ${model}`);
+    log('info', `Calling OpenAI API with model: ${model}, baseUrl: ${effectiveBaseUrl}`);
 
-    const response = await fetch(`${OPENAI_API_BASE}/chat/completions`, {
+    const response = await fetch(`${effectiveBaseUrl}/chat/completions`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -431,15 +437,21 @@ async function handleStreamingResponse(
  * Validate an OpenAI API key by making a test request
  *
  * @param apiKey - API key to validate
+ * @param baseUrl - Custom API base URL (optional)
  * @returns Validation result
  */
-export async function validateApiKey(apiKey: string): Promise<{
+export async function validateApiKey(
+  apiKey: string,
+  baseUrl?: string
+): Promise<{
   valid: boolean;
   error?: string;
   models?: string[];
 }> {
+  const effectiveBaseUrl = baseUrl?.trim() || OPENAI_DEFAULT_BASE;
+
   try {
-    const response = await fetch(`${OPENAI_API_BASE}/models`, {
+    const response = await fetch(`${effectiveBaseUrl}/models`, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${apiKey}`,

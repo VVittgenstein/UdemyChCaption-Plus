@@ -205,6 +205,10 @@ export interface UserSettings {
   apiKey: string;
   /** Model name */
   model: string;
+  /** Custom OpenAI-compatible API base URL (empty = use official) */
+  openaiBaseUrl: string;
+  /** Custom Gemini-compatible API base URL (empty = use official) */
+  geminiBaseUrl: string;
   /** Main toggle for subtitle replacement */
   enabled: boolean;
   /** Auto-translate on page load */
