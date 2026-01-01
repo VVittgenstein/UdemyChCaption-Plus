@@ -428,7 +428,7 @@ export async function preloadLecture(request: PreloadRequest): Promise<PreloadRe
       lectureId,
       courseName: request.courseName || '',
       lectureName: request.lectureName || lectureTitle || lectureId,
-      originalHash: version.originalHash,
+      originalHash: version.originalHash || '',
       translatedVTT: result.translatedVTT,
       provider: settings.provider,
       model: settings.model,

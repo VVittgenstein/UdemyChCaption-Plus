@@ -2,7 +2,8 @@
  * Service Worker Entrypoint (Manifest V3)
  *
  * Focus for Task ID: T-20251223-act-012-build-retranslate
- * - Check cached subtitle version by originalHash
+ * Updated: T-20251231-act-022-cache-match-fix
+ * - Check cached subtitle by courseId + lectureId (no hash comparison)
  * - Force retranslation when requested
  * - Send progress + completion updates (for Popup UI)
  */
@@ -13,7 +14,6 @@ import { addSessionCost, updateSessionCostState } from '../storage/session-cost'
 import { checkSubtitleVersion } from '../services/version-checker';
 import { estimateTranslationCost, translateVTT } from '../services/translator';
 import { preloadLecture } from '../services/preloader';
-import { calculateHash } from '../utils/hash';
 
 type AnyMessage = { type: string; payload?: any; meta?: any };
 
@@ -76,12 +76,10 @@ async function handleTranslateSubtitle(sender: chrome.runtime.MessageSender, pay
   const model = payload?.model || settings.model;
   const apiKey = settings.apiKey;
 
-  const originalHash: string = payload?.originalHash || (await calculateHash(vttContent));
-
+  // Check cache by courseId + lectureId only (no hash comparison)
   const version = await checkSubtitleVersion({
     courseId,
     lectureId,
-    originalHash,
     force,
   });
 
@@ -185,7 +183,7 @@ async function handleTranslateSubtitle(sender: chrome.runtime.MessageSender, pay
       lectureId,
       courseName: payload?.courseName || '',
       lectureName: payload?.lectureName || payload?.lectureId || '',
-      originalHash,
+      originalHash: payload?.originalHash || '',
       translatedVTT: result.translatedVTT,
       provider,
       model,

@@ -1,6 +1,10 @@
 /**
  * Unit Tests for Subtitle Version Checker
  * Task ID: T-20251223-act-012-build-retranslate
+ * Updated: T-20251231-act-022-cache-match-fix
+ *
+ * Note: Cache decision is now based only on courseId + lectureId.
+ * Hash is computed for storage but not used for cache comparison.
  */
 
 import 'fake-indexeddb/auto';
@@ -17,7 +21,6 @@ describe('checkSubtitleVersion', () => {
     const result = await checkSubtitleVersion({
       courseId: 'course-1',
       lectureId: 'lecture-1',
-      originalHash: 'hash-a',
     });
 
     expect(result.decision).toBe('retranslate');
@@ -25,7 +28,7 @@ describe('checkSubtitleVersion', () => {
     expect(result.cacheHit).toBe(false);
   });
 
-  it('should use cache when hash matches', async () => {
+  it('should use cache when entry exists (no hash comparison)', async () => {
     await subtitleCache.set({
       courseId: 'course-1',
       lectureId: 'lecture-1',
@@ -42,17 +45,15 @@ describe('checkSubtitleVersion', () => {
     const result = await checkSubtitleVersion({
       courseId: 'course-1',
       lectureId: 'lecture-1',
-      originalHash: 'hash-a',
     });
 
     expect(result.decision).toBe('use_cache');
     expect(result.reason).toBe('cache_valid');
     expect(result.cacheHit).toBe(true);
-    expect(result.hashMatch).toBe(true);
     expect(result.cachedEntry?.translatedVTT).toContain('WEBVTT');
   });
 
-  it('should request retranslation when hash changed', async () => {
+  it('should use cache even when stored hash differs (hash no longer compared)', async () => {
     await subtitleCache.set({
       courseId: 'course-1',
       lectureId: 'lecture-1',
@@ -66,19 +67,22 @@ describe('checkSubtitleVersion', () => {
       estimatedCost: 0.0001,
     });
 
+    // Pass different originalVtt - should still use cache since only courseId+lectureId matter
     const result = await checkSubtitleVersion({
       courseId: 'course-1',
       lectureId: 'lecture-1',
-      originalHash: 'hash-new',
+      originalVtt: 'WEBVTT\n\n00:00:00.000 --> 00:00:01.000\nNew content',
     });
 
-    expect(result.decision).toBe('retranslate');
-    expect(result.reason).toBe('hash_changed');
+    expect(result.decision).toBe('use_cache');
+    expect(result.reason).toBe('cache_valid');
     expect(result.cacheHit).toBe(true);
-    expect(result.hashMatch).toBe(false);
+    // originalHash should be computed from the passed VTT
+    expect(result.originalHash).toBeDefined();
+    expect(typeof result.originalHash).toBe('string');
   });
 
-  it('should force retranslation even when hash matches', async () => {
+  it('should force retranslation when force=true', async () => {
     await subtitleCache.set({
       courseId: 'course-1',
       lectureId: 'lecture-1',
@@ -95,14 +99,36 @@ describe('checkSubtitleVersion', () => {
     const result = await checkSubtitleVersion({
       courseId: 'course-1',
       lectureId: 'lecture-1',
-      originalHash: 'hash-a',
       force: true,
     });
 
     expect(result.decision).toBe('retranslate');
     expect(result.reason).toBe('force');
     expect(result.cacheHit).toBe(true);
-    expect(result.hashMatch).toBe(true);
+  });
+
+  it('should compute originalHash when originalVtt is provided', async () => {
+    const vttContent = 'WEBVTT\n\n00:00:00.000 --> 00:00:01.000\nHello';
+
+    const result = await checkSubtitleVersion({
+      courseId: 'course-1',
+      lectureId: 'lecture-1',
+      originalVtt: vttContent,
+    });
+
+    expect(result.decision).toBe('retranslate');
+    expect(result.reason).toBe('cache_miss');
+    expect(result.originalHash).toBeDefined();
+    expect(typeof result.originalHash).toBe('string');
+    expect(result.originalHash!.length).toBeGreaterThan(0);
+  });
+
+  it('should not include originalHash when originalVtt is not provided', async () => {
+    const result = await checkSubtitleVersion({
+      courseId: 'course-1',
+      lectureId: 'lecture-1',
+    });
+
+    expect(result.originalHash).toBeUndefined();
   });
 });
-

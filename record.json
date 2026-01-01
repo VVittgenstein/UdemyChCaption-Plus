@@ -1837,6 +1837,88 @@
         "api",
         "third-party-support"
       ]
+    },
+    "T-20251231-act-022-cache-match-fix": {
+      "execution_order": 22,
+      "execution_layer": 10,
+      "parallel_with": [],
+      "seed_id": "ACT-022",
+      "title": "修复缓存匹配：移除内容哈希检查，改用 courseId + lectureId 匹配",
+      "type": "fix",
+      "summary": "解决重新打开网页时因 Udemy 自动字幕内容微小变化导致的误触发重新翻译问题。Udemy 自动生成的字幕每次加载可能产生不同的 cue 数量或时间戳，导致内容哈希变化，被误判为字幕已更新。改用稳定的 courseId + lectureId 作为缓存匹配的唯一标识。",
+      "acceptance_draft": [
+        "重新打开已翻译课程页面时直接使用缓存，不触发重新翻译",
+        "用户手动点击重新翻译仍可正常工作",
+        "缓存键仍为 courseId-lectureId，存储结构无变化"
+      ],
+      "lane": "now",
+      "priority_suggested": "P1",
+      "status": "completed",
+      "status_note": "已移除内容哈希检查逻辑，缓存决策仅基于 courseId + lectureId。Code Review 修复：恢复 originalVtt/originalHash 接口兼容性，hash 仅用于存储不用于比较。",
+      "dependencies": [
+        "T-20251223-act-010-build-local-cache",
+        "T-20251223-act-012-build-retranslate"
+      ],
+      "blocked": false,
+      "blocked_by": [],
+      "unblock_plan": "",
+      "estimate_h": 1,
+      "interfaces_touched": [
+        "service-worker",
+        "version-checker",
+        "preloader"
+      ],
+      "artifacts": [
+        "src/services/version-checker.ts",
+        "src/background/service-worker.ts",
+        "src/services/preloader.ts",
+        "src/services/__tests__/version-checker.test.ts",
+        "Compact/Compact-T-20251231-act-022-cache-match-fix-2025-12-31-T215018Z.md"
+      ],
+      "citations": [],
+      "created_at": "2025-12-31T00:00:00Z",
+      "updated_at": "2025-12-31T22:30:00Z",
+      "completed_at": "2025-12-31T21:50:18Z",
+      "owner": "claude-code",
+      "tags": [
+        "seed:ACT-022",
+        "bugfix",
+        "cache",
+        "ux-improvement"
+      ],
+      "completion_summary": {
+        "deliverables": [
+          "src/services/version-checker.ts",
+          "src/background/service-worker.ts",
+          "src/services/preloader.ts",
+          "src/services/__tests__/version-checker.test.ts",
+          "Compact/Compact-T-20251231-act-022-cache-match-fix-2025-12-31-T215018Z.md"
+        ],
+        "key_findings": [
+          "Udemy 自动字幕每次加载可能产生不同的 cue 数量或时间戳",
+          "内容哈希比较导致不必要的重新翻译",
+          "courseId + lectureId 作为唯一标识足够稳定"
+        ],
+        "changes_made": [
+          "缓存决策仅基于 courseId + lectureId，不再比较 hash",
+          "保留 originalVtt 参数和 originalHash 返回值用于存储（不用于缓存决策）",
+          "service-worker.ts 不再计算哈希用于版本检查",
+          "preloader.ts 添加 originalHash fallback 处理",
+          "更新 version-checker 测试用例"
+        ]
+      },
+      "code_review_fixes": [
+        {
+          "finding": "[P1] Version checker signature now rejects callers with originalVtt",
+          "fix": "恢复 originalVtt/originalHash 接口兼容性，hash 仅计算用于存储，不用于缓存决策",
+          "files_changed": [
+            "src/services/version-checker.ts",
+            "src/services/preloader.ts",
+            "src/services/__tests__/version-checker.test.ts"
+          ],
+          "verified": true
+        }
+      ]
     }
   },
   "questions_for_human": [
