@@ -6,3 +6,13 @@ test-results/
 # Dependencies
 node_modules/
 
+# Build output
+dist/
+
+# Local project-management / agent artifacts
+Compact/
+record.json
+docs/read_only.md
+docs/*-dr-*.md
+docs/spikes/
+

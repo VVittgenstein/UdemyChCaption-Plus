@@ -754,7 +754,6 @@ src/
 - [spike-report-track-inject.md](./spike-report-track-inject.md) - Track 注入验证
 - [spike-report-sw-lifecycle.md](./spike-report-sw-lifecycle.md) - MV3 生命周期验证
 - [spike-report-next-lecture.md](./spike-report-next-lecture.md) - 下一课 ID 获取验证
-- [record.json](./record.json) - 任务追踪
 
 ## 附录 B: 参考资料
 

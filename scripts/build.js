@@ -28,7 +28,7 @@ const staticFiles = [
 
 // Directories to copy
 const staticDirs = [
-  { src: 'dist/icons', dest: 'dist/icons' }, // icons are already in dist
+  { src: 'assets/icons', dest: 'dist/icons' },
 ];
 
 /**
