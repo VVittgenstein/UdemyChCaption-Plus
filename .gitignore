@@ -3,3 +3,6 @@ playwright-report/
 test-results/
 .udemy-storage-state.json
 
+# Dependencies
+node_modules/
+

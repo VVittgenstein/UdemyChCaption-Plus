@@ -1,6 +1,13 @@
 # UdemyChCaption-Plus
 
-Udemy 字幕语义重构 + AI 翻译 + 时轴重对齐，原生替换中文字幕轨道的 Chrome 扩展。
+A Chrome Manifest V3 extension that reconstructs Udemy subtitle text, translates it with OpenAI or Google Gemini, realigns caption timing, and injects the translated track back into Udemy's native video player.
+
+## Technical highlights
+
+- TypeScript Chrome extension using Manifest V3, content scripts, background service worker, and IndexedDB-backed local storage.
+- LLM translation pipeline with OpenAI/Gemini provider support, batching, cost estimation, cache reuse, and local-only API key storage.
+- Subtitle acquisition and replacement flow covering Udemy caption tracks, WebVTT parsing/generation, timeline alignment, and native `<track>` injection.
+- Test coverage with Jest unit tests and Playwright E2E checks for subtitle extraction and injection behavior.
 
 ## 功能特性
 
